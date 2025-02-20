@@ -31,7 +31,8 @@ def test_memory_storage_operations() -> None:
 def test_base_storage_is_abstract() -> None:
     # Test that BaseStorage is an abstract class
     with pytest.raises(TypeError) as exc_info:
-        BaseStorage()
+        # We intentionally try to instantiate an abstract class to test that it fails
+        BaseStorage()  # type: ignore[abstract]
 
     error_msg = str(exc_info.value)
     # Verify that all required abstract methods are mentioned
