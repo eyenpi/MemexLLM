@@ -3,7 +3,7 @@ from memexllm.core.history import HistoryManager
 from memexllm.storage.memory import MemoryStorage
 
 
-def main():
+def main() -> None:
     # Initialize storage backend
     storage = MemoryStorage()
 
@@ -32,6 +32,7 @@ def main():
 
     # Retrieve the thread
     retrieved_thread = history_manager.get_thread(thread.id)
+    assert retrieved_thread is not None  # Type check
     print(f"Thread has {len(retrieved_thread.messages)} messages")
 
     # Print all messages

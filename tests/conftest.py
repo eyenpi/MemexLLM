@@ -1,10 +1,12 @@
+from typing import List
+
 import pytest
 
 from memexllm.core.models import Message, Thread
 
 
-@pytest.fixture
-def sample_thread():
+@pytest.fixture()  # type: ignore
+def sample_thread() -> Thread:
     return Thread(
         id="test_thread",
         metadata={"user_id": "test_user"},
@@ -15,8 +17,8 @@ def sample_thread():
     )
 
 
-@pytest.fixture
-def sample_messages():
+@pytest.fixture()  # type: ignore
+def sample_messages() -> List[Message]:
     return [
         Message(role="user", content="Hello"),
         Message(role="assistant", content="Hi there"),

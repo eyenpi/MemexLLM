@@ -7,7 +7,7 @@ from .base import BaseStorage
 class MemoryStorage(BaseStorage):
     """In-memory storage implementation"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.threads: Dict[str, Thread] = {}
 
     def save_thread(self, thread: Thread) -> None:
