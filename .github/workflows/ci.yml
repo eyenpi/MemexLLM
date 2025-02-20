@@ -41,16 +41,6 @@ jobs:
       if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
       run: poetry install --no-interaction --with dev
 
-    - name: Format with black and isort
-      run: |
-        poetry run black .
-        poetry run isort .
-        git config --global user.name 'GitHub Actions'
-        git config --global user.email 'actions@github.com'
-        git add .
-        git diff --staged --quiet || git commit -m "Apply automatic formatting"
-        git push origin HEAD:${{ github.head_ref }}
-
     - name: Run formatters check
       run: |
         poetry run black . --check

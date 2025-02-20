@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 25.1.0
     hooks:
     -   id: black
         language_version: python3
@@ -9,3 +9,12 @@ repos:
     hooks:
     -   id: isort
         args: ["--profile", "black"] 
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+    -   id: mypy
+        args: [--strict, --ignore-missing-imports]
+        additional_dependencies:
+            - pydantic>=2.0.0
+            - types-PyYAML
+            # Add other type stubs as needed for your project's dependencies 

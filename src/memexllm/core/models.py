@@ -1,6 +1,6 @@
 import uuid
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Literal, Optional
 
 MessageRole = Literal["user", "assistant", "system"]
@@ -11,7 +11,7 @@ class Message:
     content: str
     role: MessageRole
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Dict[str, Any] = field(default_factory=dict)
     token_count: Optional[int] = None
 
@@ -21,13 +21,13 @@ class Thread:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     messages: List[Message] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def add_message(self, message: Message) -> None:
         """Add a message to the thread"""
         self.messages.append(message)
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = datetime.now(timezone.utc)
 
     def get_messages(self) -> List[Message]:
         """Get all messages in the thread"""

@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional
 
 from ..algorithms.base import BaseAlgorithm
-from ..core.models import Message, Thread
+from ..core.models import Message, MessageRole, Thread
 from ..storage.base import BaseStorage
 
 
@@ -37,7 +37,7 @@ class HistoryManager:
         self,
         thread_id: str,
         content: str,
-        role: str,
+        role: MessageRole,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> Message:
         """Add a message to a thread"""
