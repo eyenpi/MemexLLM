@@ -24,12 +24,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
 
-    - name: Install Poetry
-      uses: snok/install-poetry@v1
-      with:
-        version: 1.7.1
-        virtualenvs-create: true
-        virtualenvs-in-project: true
+    - name: Install and configure Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
     - name: Load cached venv
       id: cached-poetry-dependencies
