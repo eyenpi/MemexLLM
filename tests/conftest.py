@@ -1,5 +1,7 @@
 import pytest
+
 from memexllm.core.models import Message, Thread
+
 
 @pytest.fixture
 def sample_thread():
@@ -9,8 +11,9 @@ def sample_thread():
         messages=[
             Message(role="user", content="Hello"),
             Message(role="assistant", content="Hi there"),
-        ]
+        ],
     )
+
 
 @pytest.fixture
 def sample_messages():
@@ -18,5 +21,5 @@ def sample_messages():
         Message(role="user", content="Hello"),
         Message(role="assistant", content="Hi there"),
         Message(role="user", content="How are you?"),
-        Message(role="assistant", content="I'm doing well!")
-    ] 
+        Message(role="assistant", content="I'm doing well!"),
+    ]

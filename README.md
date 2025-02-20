@@ -8,3 +8,15 @@
 ## Overview
 
 MemexLLM is a Python library for managing and storing LLM conversations. It provides a flexible and extensible framework for history management, storage, and retrieval of conversations.
+
+## Development
+
+### Setup
+
+1. Install pre-commit hooks:
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
+
+This will automatically format your code with black and isort before each commit.
