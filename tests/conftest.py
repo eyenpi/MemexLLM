@@ -1,13 +1,8 @@
 from typing import List
 
 import pytest
-from typing_extensions import TypeAlias  # For Python <3.10
 
 from memexllm.core.models import Message, Thread
-
-# Type alias for the fixture function
-ThreadFixture: TypeAlias = pytest.FixtureFunction[Thread]
-MessageListFixture: TypeAlias = pytest.FixtureFunction[List[Message]]
 
 
 @pytest.fixture()  # type: ignore
