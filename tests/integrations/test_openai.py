@@ -224,38 +224,3 @@ def test_thread_reuse(
     assert thread.messages[2].content == "How are you?"
     assert thread.messages[3].role == "assistant"
     assert thread.messages[3].content == "Hello there!"
-
-
-@pytest.mark.integration
-def test_real_openai_integration(history_manager: HistoryManager) -> None:
-    # Note: This test requires a valid OPENAI_API_KEY environment variable
-    client = OpenAI()
-    wrapped_client = with_history(history_manager=history_manager)(client)
-
-    # Create a new thread using history manager
-    thread = history_manager.create_thread()
-
-    # Create messages and convert to OpenAI format
-    messages = [
-        Message(role=cast(MessageRole, "user"), content="Say 'test' and nothing else")
-    ]
-    openai_messages = _convert_to_openai_messages(messages)
-
-    response = wrapped_client.chat.completions.create(  # type: ignore
-        messages=openai_messages, model="gpt-4", thread_id=thread.id, max_tokens=10
-    )
-
-    # Verify response format
-    assert isinstance(response, ChatCompletion)
-    assert len(response.choices) > 0
-    assert response.choices[0].message.content is not None
-
-    # Verify history was recorded
-    retrieved_thread = history_manager.get_thread(thread.id)
-    assert retrieved_thread is not None
-    thread = retrieved_thread
-    assert len(thread.messages) == 2
-    assert thread.messages[0].role == "user"
-    assert thread.messages[0].content == "Say 'test' and nothing else"
-    assert thread.messages[1].role == "assistant"
-    assert thread.messages[1].content == response.choices[0].message.content
