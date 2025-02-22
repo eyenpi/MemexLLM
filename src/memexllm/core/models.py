@@ -15,6 +15,17 @@ class Message:
     metadata: Dict[str, Any] = field(default_factory=dict)
     token_count: Optional[int] = None
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Message":
+        """Create a message from a dictionary"""
+        return cls(
+            content=str(data["content"]),
+            role=data["role"],
+            id=data.get("id", str(uuid.uuid4())),
+            metadata=data.get("metadata", {}),
+            token_count=data.get("token_count"),
+        )
+
 
 @dataclass
 class Thread:
@@ -42,22 +53,20 @@ class Thread:
         """Convert thread to dictionary"""
         return {
             "id": self.id,
-            "messages": [self._message_to_dict(msg) for msg in self.messages],
+            "messages": [
+                {
+                    "id": msg.id,
+                    "role": msg.role,
+                    "content": msg.content,
+                    "created_at": msg.created_at.isoformat(),
+                    "metadata": msg.metadata,
+                    "token_count": msg.token_count,
+                }
+                for msg in self.messages
+            ],
             "metadata": self.metadata,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-        }
-
-    @staticmethod
-    def _message_to_dict(message: Message) -> Dict[str, Any]:
-        """Convert message to dictionary"""
-        return {
-            "id": message.id,
-            "content": message.content,
-            "role": message.role,
-            "created_at": message.created_at.isoformat(),
-            "metadata": message.metadata,
-            "token_count": message.token_count,
         }
 
     @classmethod
@@ -75,17 +84,9 @@ class Thread:
             thread.updated_at = datetime.fromisoformat(data["updated_at"])
 
         for msg_data in data.get("messages", []):
-            msg = Message(
-                id=msg_data.get("id", str(uuid.uuid4())),
-                content=msg_data["content"],
-                role=msg_data["role"],
-                metadata=msg_data.get("metadata", {}),
-                token_count=msg_data.get("token_count"),
-            )
-
+            msg = Message.from_dict(msg_data)
             if "created_at" in msg_data:
                 msg.created_at = datetime.fromisoformat(msg_data["created_at"])
-
             thread.messages.append(msg)
 
         return thread
