@@ -1,8 +1,8 @@
-from typing import List
+from typing import List, cast
 
 import pytest
 
-from memexllm.core.models import Message, Thread
+from memexllm.core import Message, MessageRole, Thread
 
 
 @pytest.fixture()  # type: ignore
@@ -11,8 +11,8 @@ def sample_thread() -> Thread:
         id="test_thread",
         metadata={"user_id": "test_user"},
         messages=[
-            Message(role="user", content="Hello"),
-            Message(role="assistant", content="Hi there"),
+            Message(role=cast(MessageRole, "user"), content="Hello"),
+            Message(role=cast(MessageRole, "assistant"), content="Hi there"),
         ],
     )
 
@@ -20,8 +20,8 @@ def sample_thread() -> Thread:
 @pytest.fixture()  # type: ignore
 def sample_messages() -> List[Message]:
     return [
-        Message(role="user", content="Hello"),
-        Message(role="assistant", content="Hi there"),
-        Message(role="user", content="How are you?"),
-        Message(role="assistant", content="I'm doing well!"),
+        Message(role=cast(MessageRole, "user"), content="Hello"),
+        Message(role=cast(MessageRole, "assistant"), content="Hi there"),
+        Message(role=cast(MessageRole, "user"), content="How are you?"),
+        Message(role=cast(MessageRole, "assistant"), content="I'm doing well!"),
     ]

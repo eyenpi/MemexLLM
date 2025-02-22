@@ -13,8 +13,13 @@ repos:
     rev: v1.15.0
     hooks:
     -   id: mypy
+        exclude: ^examples/
         args: []
         additional_dependencies:
             - pydantic>=2.0.0
             - types-PyYAML
+            - openai>=1.63.0
+            - typing-extensions>=4.0.0
+            - pytest>=7.0.0
+            - pytest-asyncio>=0.23.0
             # Add other type stubs as needed for your project's dependencies 

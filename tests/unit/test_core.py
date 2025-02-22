@@ -1,9 +1,10 @@
+from typing import cast
+
 import pytest
 
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.history import HistoryManager
-from memexllm.core.models import Message, Thread
-from memexllm.storage.memory import MemoryStorage
+from memexllm.algorithms import FIFOAlgorithm
+from memexllm.core import HistoryManager, Message, MessageRole, Thread
+from memexllm.storage import MemoryStorage
 
 
 def test_history_manager_creation() -> None:
@@ -29,8 +30,16 @@ def test_message_management() -> None:
     thread = manager.create_thread()
 
     # Add messages
-    manager.add_message(thread_id=thread.id, content="Hello", role="user")
-    manager.add_message(thread_id=thread.id, content="Hi there!", role="assistant")
+    manager.add_message(
+        thread_id=thread.id,
+        content="Hello",
+        role=cast(MessageRole, "user"),
+    )
+    manager.add_message(
+        thread_id=thread.id,
+        content="Hi there!",
+        role=cast(MessageRole, "assistant"),
+    )
 
     # Retrieve and verify
     updated_thread = manager.get_thread(thread.id)
@@ -56,7 +65,7 @@ def test_thread_model_methods() -> None:
     message = Message(
         id="msg-id",
         content="Hello",
-        role="user",
+        role=cast(MessageRole, "user"),
         created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
         metadata={"msg_key": "msg_value"},
         token_count=10,
@@ -97,10 +106,57 @@ def test_thread_property_methods() -> None:
     # Test message_count property
     assert thread.message_count == 0
 
-    thread.add_message(Message(content="Hello", role="user"))
+    thread.add_message(Message(content="Hello", role=cast(MessageRole, "user")))
     assert thread.message_count == 1
 
     # Test get_messages method
     messages = thread.get_messages()
     assert len(messages) == 1
     assert messages[0].content == "Hello"
+
+
+def test_get_messages_thread_not_found() -> None:
+    """Test that get_messages raises ValueError when thread is not found"""
+    storage = MemoryStorage()
+    manager = HistoryManager(storage)
+
+    with pytest.raises(ValueError, match="Thread with ID nonexistent not found"):
+        manager.get_messages("nonexistent")
+
+
+def test_list_threads_pagination() -> None:
+    """Test listing threads with pagination"""
+    storage = MemoryStorage()
+    manager = HistoryManager(storage)
+
+    # Create 5 threads
+    threads = [manager.create_thread() for _ in range(5)]
+
+    # Test default pagination (limit=100, offset=0)
+    result = manager.list_threads()
+    assert len(result) == 5
+
+    # Test with limit
+    result = manager.list_threads(limit=2)
+    assert len(result) == 2
+
+    # Test with offset
+    result = manager.list_threads(limit=2, offset=2)
+    assert len(result) == 2
+    assert result[0].id == threads[2].id
+
+
+def test_delete_thread() -> None:
+    """Test deleting a thread"""
+    storage = MemoryStorage()
+    manager = HistoryManager(storage)
+
+    # Create and then delete a thread
+    thread = manager.create_thread()
+    assert manager.delete_thread(thread.id) is True
+
+    # Verify thread is gone
+    assert manager.get_thread(thread.id) is None
+
+    # Try to delete nonexistent thread
+    assert manager.delete_thread("nonexistent") is False

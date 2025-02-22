@@ -1,6 +1,6 @@
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.history import HistoryManager
-from memexllm.storage.memory import MemoryStorage
+from memexllm.algorithms import FIFOAlgorithm
+from memexllm.core import HistoryManager
+from memexllm.storage import MemoryStorage
 
 
 def main() -> None:

@@ -33,8 +33,9 @@ typing-extensions = "^4.0.0"
 pytest = "^7.0.0"
 black = "^23.0.0"
 isort = "^5.0.0"
-mypy = "^1.0.0"
+mypy = "1.15.0"
 pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.23.0"
 
 [tool.poetry.group.openai.dependencies]
 openai = "^1.63.0"
@@ -44,7 +45,11 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
+addopts = "--cov=memexllm --cov-report=xml --cov-report=term-missing"
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests",
+]
 python_files = "test_*.py"
 
 [tool.black]
@@ -68,3 +73,4 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
+exclude = ["examples/.*"]
