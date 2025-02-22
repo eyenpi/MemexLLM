@@ -45,7 +45,7 @@ jobs:
         poetry run isort . --check-only
 
     - name: Run mypy
-      run: poetry run mypy src tests
+      run: poetry run mypy src tests --exclude examples/
 
     - name: Run tests with pytest
       run: poetry run pytest -v --cov=src --cov-report=xml
