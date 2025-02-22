@@ -1,13 +1,76 @@
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from openai import AsyncOpenAI, OpenAI
-from openai.types.chat import ChatCompletion, ChatCompletionMessage
+from openai.types.chat import (
+    ChatCompletion,
+    ChatCompletionAssistantMessageParam,
+    ChatCompletionFunctionMessageParam,
+    ChatCompletionMessage,
+    ChatCompletionMessageParam,
+    ChatCompletionSystemMessageParam,
+    ChatCompletionToolMessageParam,
+    ChatCompletionUserMessageParam,
+)
 
 from ..algorithms.base import BaseAlgorithm
 from ..core.history import HistoryManager
-from ..core.models import MessageRole
+from ..core.models import Message, MessageRole
 from ..storage.base import BaseStorage
+
+
+def _convert_to_message(msg: Union[Dict[str, Any], ChatCompletionMessage]) -> Message:
+    """Convert external message to internal message format."""
+    if isinstance(msg, dict):
+        role = str(msg.get("role", ""))
+        if role not in ("system", "user", "assistant"):
+            raise ValueError(f"Invalid role: {role}")
+        return Message(
+            role=cast(MessageRole, role),
+            content=str(msg.get("content", "")),
+        )
+    else:
+        role = str(msg.role)
+        if role not in ("system", "user", "assistant"):
+            raise ValueError(f"Invalid role: {role}")
+        return Message(
+            role=cast(MessageRole, role),
+            content=msg.content or "",
+        )
+
+
+def _convert_to_openai_messages(
+    messages: Sequence[Message],
+) -> List[ChatCompletionMessageParam]:
+    """Convert internal Message objects to OpenAI message format."""
+    openai_messages: List[ChatCompletionMessageParam] = []
+
+    for msg in messages:
+        if msg.role == "system":
+            openai_messages.append(
+                ChatCompletionSystemMessageParam(role="system", content=msg.content)
+            )
+        elif msg.role == "user":
+            openai_messages.append(
+                ChatCompletionUserMessageParam(role="user", content=msg.content)
+            )
+        elif msg.role == "assistant":
+            openai_messages.append(
+                ChatCompletionAssistantMessageParam(
+                    role="assistant", content=msg.content
+                )
+            )
+
+    return openai_messages
 
 
 def with_history(
@@ -38,63 +101,50 @@ def with_history(
         original_chat_completions_create = client.chat.completions.create
 
         def _prepare_messages(
-            thread_id: str, new_messages: List[Dict[str, str]]
-        ) -> List[Dict[str, str]]:
+            thread_id: str,
+            new_messages: Sequence[Union[Dict[str, Any], ChatCompletionMessage]],
+        ) -> List[ChatCompletionMessageParam]:
             """Prepare messages by combining thread history with new messages."""
             thread = history_manager.get_thread(thread_id)
+            converted_messages = [_convert_to_message(msg) for msg in new_messages]
+
             if not thread:
-                return new_messages
+                return _convert_to_openai_messages(converted_messages)
 
             # Extract system message if present in new messages
             system_message = next(
-                (msg for msg in new_messages if msg["role"] == "system"), None
+                (msg for msg in converted_messages if msg.role == "system"),
+                None,
             )
 
-            # Get system message from history if not in new messages
-            if not system_message:
-                system_message = next(
-                    (
-                        {"role": msg.role, "content": msg.content}
-                        for msg in thread.messages
-                        if msg.role == "system"
-                    ),
-                    None,
-                )
+            # Prepare thread messages
+            thread_messages: List[Message] = []
+            for msg in thread.messages:
+                if msg.role == "system" and system_message:
+                    continue  # Skip system message from history if we have a new one
+                thread_messages.append(msg)
 
-            # Start with system message if present
-            final_messages = [system_message] if system_message else []
+            # Combine messages
+            if system_message:
+                thread_messages.insert(0, system_message)
 
-            # Add history messages from thread
-            history_messages = [
-                {"role": msg.role, "content": msg.content}
-                for msg in thread.messages
-                if msg.role
-                != "system"  # Skip system messages from history as we handle them separately
-            ]
+            # Add new messages (excluding system message if it was handled)
+            for msg in converted_messages:
+                if (
+                    system_message
+                    and msg.role == "system"
+                    and msg.content == system_message.content
+                ):
+                    continue
+                thread_messages.append(msg)
 
-            # Add new non-system messages
-            new_user_messages = [msg for msg in new_messages if msg["role"] != "system"]
-
-            # Combine messages in order: system (if any) -> history -> new messages
-            final_messages.extend(history_messages)
-
-            # Only add new messages that aren't already in history
-            seen_messages = {(msg["role"], msg["content"]) for msg in final_messages}
-            for msg in new_user_messages:
-                if (msg["role"], msg["content"]) not in seen_messages:
-                    final_messages.append(msg)
-
-            # Remove None entries
-            final_messages = [msg for msg in final_messages if msg is not None]
-
-            return final_messages
+            return _convert_to_openai_messages(thread_messages)
 
         @wraps(original_chat_completions_create)
         async def async_chat_completions_create(
-            *args: Any, **kwargs: Any
+            *args: Any, thread_id: Optional[str] = None, **kwargs: Any
         ) -> ChatCompletion:
-            # Create or get thread from metadata
-            thread_id = kwargs.pop("thread_id", None)  # Remove thread_id from kwargs
+            # Create or get thread
             if not thread_id:
                 thread = history_manager.create_thread()
                 thread_id = thread.id
@@ -106,23 +156,27 @@ def with_history(
 
             # Call original method
             response = await original_chat_completions_create(*args, **kwargs)
+            if not isinstance(response, ChatCompletion):
+                raise TypeError("Expected ChatCompletion response")
 
             # Add new messages and response to history
             for msg in new_messages:
+                converted_msg = _convert_to_message(msg)
                 history_manager.add_message(
                     thread_id=thread_id,
-                    content=msg["content"],
-                    role=msg["role"],
+                    content=converted_msg.content,
+                    role=converted_msg.role,
                     metadata={"type": "input"},
                 )
 
             if isinstance(response, ChatCompletion):
                 for choice in response.choices:
                     if isinstance(choice.message, ChatCompletionMessage):
+                        converted_msg = _convert_to_message(choice.message)
                         history_manager.add_message(
                             thread_id=thread_id,
-                            content=choice.message.content or "",
-                            role=choice.message.role,
+                            content=converted_msg.content,
+                            role=converted_msg.role,
                             metadata={
                                 "type": "output",
                                 "finish_reason": choice.finish_reason,
@@ -133,9 +187,10 @@ def with_history(
             return response
 
         @wraps(original_chat_completions_create)
-        def sync_chat_completions_create(*args: Any, **kwargs: Any) -> ChatCompletion:
-            # Create or get thread from metadata
-            thread_id = kwargs.pop("thread_id", None)  # Remove thread_id from kwargs
+        def sync_chat_completions_create(
+            *args: Any, thread_id: Optional[str] = None, **kwargs: Any
+        ) -> ChatCompletion:
+            # Create or get thread
             if not thread_id:
                 thread = history_manager.create_thread()
                 thread_id = thread.id
@@ -147,23 +202,27 @@ def with_history(
 
             # Call original method
             response = original_chat_completions_create(*args, **kwargs)
+            if not isinstance(response, ChatCompletion):
+                raise TypeError("Expected ChatCompletion response")
 
             # Add new messages and response to history
             for msg in new_messages:
+                converted_msg = _convert_to_message(msg)
                 history_manager.add_message(
                     thread_id=thread_id,
-                    content=msg["content"],
-                    role=msg["role"],
+                    content=converted_msg.content,
+                    role=converted_msg.role,
                     metadata={"type": "input"},
                 )
 
             if isinstance(response, ChatCompletion):
                 for choice in response.choices:
                     if isinstance(choice.message, ChatCompletionMessage):
+                        converted_msg = _convert_to_message(choice.message)
                         history_manager.add_message(
                             thread_id=thread_id,
-                            content=choice.message.content or "",
-                            role=choice.message.role,
+                            content=converted_msg.content,
+                            role=converted_msg.role,
                             metadata={
                                 "type": "output",
                                 "finish_reason": choice.finish_reason,

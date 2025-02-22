@@ -1,8 +1,10 @@
+from typing import cast
+
 import pytest
 
 from memexllm.algorithms.fifo import FIFOAlgorithm
 from memexllm.core.history import HistoryManager
-from memexllm.core.models import Message, Thread
+from memexllm.core.models import Message, MessageRole, Thread
 from memexllm.storage.memory import MemoryStorage
 
 
@@ -29,8 +31,16 @@ def test_message_management() -> None:
     thread = manager.create_thread()
 
     # Add messages
-    manager.add_message(thread_id=thread.id, content="Hello", role="user")
-    manager.add_message(thread_id=thread.id, content="Hi there!", role="assistant")
+    manager.add_message(
+        thread_id=thread.id,
+        content="Hello",
+        role=cast(MessageRole, "user"),
+    )
+    manager.add_message(
+        thread_id=thread.id,
+        content="Hi there!",
+        role=cast(MessageRole, "assistant"),
+    )
 
     # Retrieve and verify
     updated_thread = manager.get_thread(thread.id)
@@ -56,7 +66,7 @@ def test_thread_model_methods() -> None:
     message = Message(
         id="msg-id",
         content="Hello",
-        role="user",
+        role=cast(MessageRole, "user"),
         created_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
         metadata={"msg_key": "msg_value"},
         token_count=10,
@@ -97,7 +107,7 @@ def test_thread_property_methods() -> None:
     # Test message_count property
     assert thread.message_count == 0
 
-    thread.add_message(Message(content="Hello", role="user"))
+    thread.add_message(Message(content="Hello", role=cast(MessageRole, "user")))
     assert thread.message_count == 1
 
     # Test get_messages method
