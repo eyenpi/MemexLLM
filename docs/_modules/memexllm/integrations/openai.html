@@ -1,0 +1,442 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>memexllm.integrations.openai &mdash; MemexLLM 0.0.3 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+    <link rel="canonical" href="https://eyenpi.github.io/MemexLLM/docs/_modules/memexllm/integrations/openai.html" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/sphinx_highlight.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> MemexLLM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.3
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../readme.html">MemexLLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">memexllm</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">MemexLLM</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>memexllm.integrations.openai</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for memexllm.integrations.openai</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncOpenAI</span><span class="p">,</span> <span class="n">OpenAI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai.types.chat</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ChatCompletion</span><span class="p">,</span>
+    <span class="n">ChatCompletionAssistantMessageParam</span><span class="p">,</span>
+    <span class="n">ChatCompletionFunctionMessageParam</span><span class="p">,</span>
+    <span class="n">ChatCompletionMessage</span><span class="p">,</span>
+    <span class="n">ChatCompletionMessageParam</span><span class="p">,</span>
+    <span class="n">ChatCompletionSystemMessageParam</span><span class="p">,</span>
+    <span class="n">ChatCompletionToolMessageParam</span><span class="p">,</span>
+    <span class="n">ChatCompletionUserMessageParam</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..algorithms.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseAlgorithm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.history</span><span class="w"> </span><span class="kn">import</span> <span class="n">HistoryManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Message</span><span class="p">,</span> <span class="n">MessageRole</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..storage.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseStorage</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_message</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">ChatCompletionMessage</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Message</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert external message to internal message format.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">msg</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">role</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;role&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;assistant&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid role: </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Message</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">MessageRole</span><span class="p">,</span> <span class="n">role</span><span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;content&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">role</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">msg</span><span class="o">.</span><span class="n">role</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;assistant&quot;</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid role: </span><span class="si">{</span><span class="n">role</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Message</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">MessageRole</span><span class="p">,</span> <span class="n">role</span><span class="p">),</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_convert_to_openai_messages</span><span class="p">(</span>
+    <span class="n">messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ChatCompletionMessageParam</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert internal Message objects to OpenAI message format.&quot;&quot;&quot;</span>
+    <span class="n">openai_messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ChatCompletionMessageParam</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span><span class="p">:</span>
+            <span class="n">openai_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ChatCompletionSystemMessageParam</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;user&quot;</span><span class="p">:</span>
+            <span class="n">openai_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ChatCompletionUserMessageParam</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">msg</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;assistant&quot;</span><span class="p">:</span>
+            <span class="n">openai_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">ChatCompletionAssistantMessageParam</span><span class="p">(</span>
+                    <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">msg</span><span class="o">.</span><span class="n">content</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">openai_messages</span>
+
+
+<div class="viewcode-block" id="with_history"><a class="viewcode-back" href="../../../memexllm.integrations.html#memexllm.integrations.openai.with_history">[docs]</a><span class="k">def</span><span class="w"> </span><span class="nf">with_history</span><span class="p">(</span>
+    <span class="n">storage</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseStorage</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">algorithm</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BaseAlgorithm</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">history_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">HistoryManager</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Union</span><span class="p">[</span><span class="n">OpenAI</span><span class="p">,</span> <span class="n">AsyncOpenAI</span><span class="p">]],</span> <span class="n">Union</span><span class="p">[</span><span class="n">OpenAI</span><span class="p">,</span> <span class="n">AsyncOpenAI</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator that wraps an OpenAI client to add history management capabilities.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        storage: Storage backend implementation (optional if history_manager is provided)</span>
+<span class="sd">        algorithm: History management algorithm (optional if history_manager is provided)</span>
+<span class="sd">        history_manager: HistoryManager instance (optional, will be created if not provided)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A wrapped OpenAI client that automatically records chat history</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">client</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">OpenAI</span><span class="p">,</span> <span class="n">AsyncOpenAI</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">OpenAI</span><span class="p">,</span> <span class="n">AsyncOpenAI</span><span class="p">]:</span>
+        <span class="k">nonlocal</span> <span class="n">history_manager</span>
+        <span class="k">if</span> <span class="n">history_manager</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">storage</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either history_manager or storage must be provided&quot;</span><span class="p">)</span>
+            <span class="n">history_manager</span> <span class="o">=</span> <span class="n">HistoryManager</span><span class="p">(</span><span class="n">storage</span><span class="o">=</span><span class="n">storage</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">algorithm</span><span class="p">)</span>
+
+        <span class="c1"># Store original methods</span>
+        <span class="n">original_chat_completions_create</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_messages</span><span class="p">(</span>
+            <span class="n">thread_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">new_messages</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">ChatCompletionMessage</span><span class="p">]],</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ChatCompletionMessageParam</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Prepare messages by combining thread history with new messages.&quot;&quot;&quot;</span>
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">history_manager</span><span class="o">.</span><span class="n">get_thread</span><span class="p">(</span><span class="n">thread_id</span><span class="p">)</span>
+            <span class="n">converted_messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">_convert_to_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">new_messages</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">thread</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">_convert_to_openai_messages</span><span class="p">(</span><span class="n">converted_messages</span><span class="p">)</span>
+
+            <span class="c1"># Extract system message if present in new messages</span>
+            <span class="n">system_message</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">msg</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">converted_messages</span> <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span><span class="p">),</span>
+                <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Prepare thread messages</span>
+            <span class="n">thread_messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">thread</span><span class="o">.</span><span class="n">messages</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">msg</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span> <span class="ow">and</span> <span class="n">system_message</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># Skip system message from history if we have a new one</span>
+                <span class="n">thread_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="c1"># Combine messages</span>
+            <span class="k">if</span> <span class="n">system_message</span><span class="p">:</span>
+                <span class="n">thread_messages</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">system_message</span><span class="p">)</span>
+
+            <span class="c1"># Add new messages (excluding system message if it was handled)</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">converted_messages</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">system_message</span>
+                    <span class="ow">and</span> <span class="n">msg</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span>
+                    <span class="ow">and</span> <span class="n">msg</span><span class="o">.</span><span class="n">content</span> <span class="o">==</span> <span class="n">system_message</span><span class="o">.</span><span class="n">content</span>
+                <span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">thread_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">_convert_to_openai_messages</span><span class="p">(</span><span class="n">thread_messages</span><span class="p">)</span>
+
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">original_chat_completions_create</span><span class="p">)</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">async_chat_completions_create</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatCompletion</span><span class="p">:</span>
+            <span class="c1"># Create or get thread</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">thread_id</span><span class="p">:</span>
+                <span class="n">thread</span> <span class="o">=</span> <span class="n">history_manager</span><span class="o">.</span><span class="n">create_thread</span><span class="p">()</span>
+                <span class="n">thread_id</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">id</span>
+
+            <span class="c1"># Get messages and prepare them with history</span>
+            <span class="n">new_messages</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;messages&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">prepared_messages</span> <span class="o">=</span> <span class="n">_prepare_messages</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">new_messages</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prepared_messages</span>
+
+            <span class="c1"># Call original method</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">original_chat_completions_create</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">ChatCompletion</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected ChatCompletion response&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Add new messages and response to history</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">new_messages</span><span class="p">:</span>
+                <span class="n">converted_msg</span> <span class="o">=</span> <span class="n">_convert_to_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">history_manager</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span>
+                    <span class="n">thread_id</span><span class="o">=</span><span class="n">thread_id</span><span class="p">,</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">},</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">ChatCompletion</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatCompletionMessage</span><span class="p">):</span>
+                        <span class="n">converted_msg</span> <span class="o">=</span> <span class="n">_convert_to_message</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+                        <span class="n">history_manager</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span>
+                            <span class="n">thread_id</span><span class="o">=</span><span class="n">thread_id</span><span class="p">,</span>
+                            <span class="n">content</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                            <span class="n">role</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+                            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;finish_reason&quot;</span><span class="p">:</span> <span class="n">choice</span><span class="o">.</span><span class="n">finish_reason</span><span class="p">,</span>
+                                <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                            <span class="p">},</span>
+                        <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">response</span>
+
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">original_chat_completions_create</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">sync_chat_completions_create</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">thread_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span>
+        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatCompletion</span><span class="p">:</span>
+            <span class="c1"># Create or get thread</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">thread_id</span><span class="p">:</span>
+                <span class="n">thread</span> <span class="o">=</span> <span class="n">history_manager</span><span class="o">.</span><span class="n">create_thread</span><span class="p">()</span>
+                <span class="n">thread_id</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">id</span>
+
+            <span class="c1"># Get messages and prepare them with history</span>
+            <span class="n">new_messages</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;messages&quot;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">prepared_messages</span> <span class="o">=</span> <span class="n">_prepare_messages</span><span class="p">(</span><span class="n">thread_id</span><span class="p">,</span> <span class="n">new_messages</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;messages&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">prepared_messages</span>
+
+            <span class="c1"># Call original method</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">original_chat_completions_create</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">ChatCompletion</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Expected ChatCompletion response&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Add new messages and response to history</span>
+            <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">new_messages</span><span class="p">:</span>
+                <span class="n">converted_msg</span> <span class="o">=</span> <span class="n">_convert_to_message</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="n">history_manager</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span>
+                    <span class="n">thread_id</span><span class="o">=</span><span class="n">thread_id</span><span class="p">,</span>
+                    <span class="n">content</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                    <span class="n">role</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">},</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">ChatCompletion</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">choice</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">choices</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">message</span><span class="p">,</span> <span class="n">ChatCompletionMessage</span><span class="p">):</span>
+                        <span class="n">converted_msg</span> <span class="o">=</span> <span class="n">_convert_to_message</span><span class="p">(</span><span class="n">choice</span><span class="o">.</span><span class="n">message</span><span class="p">)</span>
+                        <span class="n">history_manager</span><span class="o">.</span><span class="n">add_message</span><span class="p">(</span>
+                            <span class="n">thread_id</span><span class="o">=</span><span class="n">thread_id</span><span class="p">,</span>
+                            <span class="n">content</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">content</span><span class="p">,</span>
+                            <span class="n">role</span><span class="o">=</span><span class="n">converted_msg</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+                            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                                <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;output&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;finish_reason&quot;</span><span class="p">:</span> <span class="n">choice</span><span class="o">.</span><span class="n">finish_reason</span><span class="p">,</span>
+                                <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="n">response</span><span class="o">.</span><span class="n">model</span><span class="p">,</span>
+                            <span class="p">},</span>
+                        <span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">response</span>
+
+        <span class="c1"># Replace methods with wrapped versions</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">client</span><span class="p">,</span> <span class="n">AsyncOpenAI</span><span class="p">):</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span> <span class="o">=</span> <span class="n">async_chat_completions_create</span>  <span class="c1"># type: ignore</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span> <span class="o">=</span> <span class="n">sync_chat_completions_create</span>  <span class="c1"># type: ignore</span>
+
+        <span class="k">return</span> <span class="n">client</span>
+
+    <span class="k">return</span> <span class="n">decorator</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2025, Ali Nabipour.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
