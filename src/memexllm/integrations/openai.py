@@ -1,14 +1,5 @@
 from functools import wraps
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union, cast
 
 from openai import AsyncOpenAI, OpenAI
 from openai.types.chat import (
