@@ -1,6 +1,8 @@
 name: Documentation
 
 on:
+  push:
+    branches: [ "main", "dev" ]
   pull_request:
     branches: [ "main", "dev" ]
 
@@ -11,8 +13,6 @@ jobs:
       contents: write
     steps:
     - uses: actions/checkout@v4
-      with:
-        ref: dev
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -41,14 +41,12 @@ jobs:
       run: |
         cd docs
         poetry run make html
-        touch build/html/.nojekyll  # Create .nojekyll file
-        cp -r build/html/* .  # Copy built files to docs folder
         
-    - name: Commit and push changes
-      if: github.event_name == 'push' && github.ref == 'refs/heads/dev'
-      run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git add docs/
-        git commit -m "docs: update documentation [skip ci]" || echo "No changes to commit"
-        git push 
+    - name: Deploy to GitHub Pages
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/build/html
+        force_orphan: true
+        enable_jekyll: false 
