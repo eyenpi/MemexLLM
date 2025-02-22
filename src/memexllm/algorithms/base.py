@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from ..core.models import Message, Thread
+if TYPE_CHECKING:
+    from ..core.models import Message, Thread
 
 
 class BaseAlgorithm(ABC):
     """Abstract base class for history management algorithms"""
 
     @abstractmethod
-    def process_thread(self, thread: Thread, new_message: Message) -> None:
+    def process_thread(self, thread: "Thread", new_message: "Message") -> None:
         """
         Process a thread when a new message is added
 
