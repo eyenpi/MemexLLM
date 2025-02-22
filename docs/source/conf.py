@@ -62,3 +62,13 @@ intersphinx_mapping = {
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+
+# GitHub Pages settings
+html_baseurl = "https://eyenpi.github.io/MemexLLM/docs/"
+html_context = {
+    "display_github": True,
+    "github_user": "eyenpi",
+    "github_repo": "MemexLLM",
+    "github_version": "dev",
+    "conf_py_path": "/docs/source/",
+}
