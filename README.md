@@ -1,7 +1,7 @@
 # MemexLLM
 
 [![CI](https://github.com/eyenpi/memexllm/actions/workflows/ci.yml/badge.svg)](https://github.com/eyenpi/memexllm/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/eyenpi/memexllm/branch/main/graph/badge.svg)](https://codecov.io/gh/eyenpi/memexllm)
+[![codecov](https://codecov.io/gh/eyenpi/memexllm/branch/main/graph/badge.svg?token=7C386MR8T9)](https://codecov.io/gh/eyenpi/memexllm)
 [![PyPI version](https://badge.fury.io/py/memexllm.svg)](https://badge.fury.io/py/memexllm)
 [![Python versions](https://img.shields.io/pypi/pyversions/memexllm.svg)](https://pypi.org/project/memexllm/)
 
