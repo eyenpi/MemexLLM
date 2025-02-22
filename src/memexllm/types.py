@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import TypeAlias
 
-if TYPE_CHECKING:
-    from .core.models import Message, Thread
+from .core.models import Message, Thread
+
+MessageType: TypeAlias = Message
+ThreadType: TypeAlias = Thread
