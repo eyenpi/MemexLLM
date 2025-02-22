@@ -20,7 +20,19 @@ from ..storage.base import BaseStorage
 
 
 def _convert_to_message(msg: Union[Dict[str, Any], ChatCompletionMessage]) -> Message:
-    """Convert external message to internal message format."""
+    """
+    Convert an OpenAI message format to internal Message format.
+
+    Args:
+        msg (Union[Dict[str, Any], ChatCompletionMessage]): Message in OpenAI format,
+            either as a dictionary or ChatCompletionMessage object
+
+    Returns:
+        Message: Converted internal message format
+
+    Raises:
+        ValueError: If the message role is invalid (must be system/user/assistant)
+    """
     if isinstance(msg, dict):
         role = str(msg.get("role", ""))
         if role not in ("system", "user", "assistant"):
@@ -42,7 +54,15 @@ def _convert_to_message(msg: Union[Dict[str, Any], ChatCompletionMessage]) -> Me
 def _convert_to_openai_messages(
     messages: Sequence[Message],
 ) -> List[ChatCompletionMessageParam]:
-    """Convert internal Message objects to OpenAI message format."""
+    """
+    Convert internal Message objects to OpenAI's message format.
+
+    Args:
+        messages (Sequence[Message]): List of internal Message objects to convert
+
+    Returns:
+        List[ChatCompletionMessageParam]: Messages formatted for OpenAI API
+    """
     openai_messages: List[ChatCompletionMessageParam] = []
 
     for msg in messages:
@@ -70,15 +90,46 @@ def with_history(
     history_manager: Optional[HistoryManager] = None,
 ) -> Callable[[Union[OpenAI, AsyncOpenAI]], Union[OpenAI, AsyncOpenAI]]:
     """
-    Decorator that wraps an OpenAI client to add history management capabilities.
+    Decorator that adds conversation history management to an OpenAI client.
+
+    This decorator wraps an OpenAI client to automatically track and manage conversation
+    history. It supports both synchronous and asynchronous clients and handles thread
+    creation, message storage, and history management.
 
     Args:
-        storage: Storage backend implementation (optional if history_manager is provided)
-        algorithm: History management algorithm (optional if history_manager is provided)
-        history_manager: HistoryManager instance (optional, will be created if not provided)
+        storage (Optional[BaseStorage]): Storage backend for persisting conversation history.
+            Required if history_manager is not provided.
+        algorithm (Optional[BaseAlgorithm]): Algorithm for managing conversation history.
+            Optional, used for features like context window management.
+        history_manager (Optional[HistoryManager]): Existing HistoryManager instance.
+            If provided, storage and algorithm parameters are ignored.
 
     Returns:
-        A wrapped OpenAI client that automatically records chat history
+        Callable: A decorator function that wraps an OpenAI client
+
+    Raises:
+        ValueError: If neither history_manager nor storage is provided
+
+    Example:
+        ```python
+        from openai import OpenAI
+        from memexllm.storage import SQLiteStorage
+        from memexllm.algorithms import FIFOAlgorithm
+
+        # Create client with history management
+        client = OpenAI()
+        storage = SQLiteStorage("chat_history.db")
+        algorithm = FIFOAlgorithm(max_messages=50)
+
+        client = with_history(storage=storage, algorithm=algorithm)(client)
+
+        # Use client with automatic history tracking
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": "Hello!"}],
+            thread_id="my-thread"  # Optional, will be created if not provided
+        )
+        ```
     """
 
     def decorator(client: Union[OpenAI, AsyncOpenAI]) -> Union[OpenAI, AsyncOpenAI]:
@@ -95,7 +146,23 @@ def with_history(
             thread_id: str,
             new_messages: Sequence[Union[Dict[str, Any], ChatCompletionMessage]],
         ) -> List[ChatCompletionMessageParam]:
-            """Prepare messages by combining thread history with new messages."""
+            """
+            Prepare messages by combining thread history with new messages.
+
+            This function:
+            1. Retrieves existing thread history
+            2. Handles system message overrides
+            3. Combines history with new messages
+            4. Converts all messages to OpenAI format
+
+            Args:
+                thread_id (str): ID of the conversation thread
+                new_messages (Sequence[Union[Dict[str, Any], ChatCompletionMessage]]):
+                    New messages to add to the conversation
+
+            Returns:
+                List[ChatCompletionMessageParam]: Combined and formatted messages
+            """
             thread = history_manager.get_thread(thread_id)
             converted_messages = [_convert_to_message(msg) for msg in new_messages]
 
@@ -135,6 +202,21 @@ def with_history(
         async def async_chat_completions_create(
             *args: Any, thread_id: Optional[str] = None, **kwargs: Any
         ) -> ChatCompletion:
+            """
+            Async version of chat completions with history management.
+
+            Args:
+                thread_id (Optional[str]): ID of the conversation thread.
+                    If not provided, a new thread will be created.
+                *args: Arguments passed to the original create method
+                **kwargs: Keyword arguments passed to the original create method
+
+            Returns:
+                ChatCompletion: The API response from OpenAI
+
+            Raises:
+                TypeError: If the API response is not a ChatCompletion
+            """
             # Create or get thread
             if not thread_id:
                 thread = history_manager.create_thread()
@@ -181,6 +263,21 @@ def with_history(
         def sync_chat_completions_create(
             *args: Any, thread_id: Optional[str] = None, **kwargs: Any
         ) -> ChatCompletion:
+            """
+            Sync version of chat completions with history management.
+
+            Args:
+                thread_id (Optional[str]): ID of the conversation thread.
+                    If not provided, a new thread will be created.
+                *args: Arguments passed to the original create method
+                **kwargs: Keyword arguments passed to the original create method
+
+            Returns:
+                ChatCompletion: The API response from OpenAI
+
+            Raises:
+                TypeError: If the API response is not a ChatCompletion
+            """
             # Create or get thread
             if not thread_id:
                 thread = history_manager.create_thread()
