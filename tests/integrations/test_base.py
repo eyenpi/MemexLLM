@@ -2,10 +2,9 @@ from typing import cast
 
 import pytest
 
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.history import HistoryManager
-from memexllm.core.models import MessageRole, Thread
-from memexllm.storage.memory import MemoryStorage
+from memexllm.algorithms import FIFOAlgorithm
+from memexllm.core import HistoryManager, MessageRole, Thread
+from memexllm.storage import MemoryStorage
 
 
 def test_complete_conversation_flow() -> None:

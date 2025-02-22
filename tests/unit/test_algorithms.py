@@ -2,9 +2,8 @@ from typing import cast
 
 import pytest
 
-from memexllm.algorithms.base import BaseAlgorithm
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.models import Message, MessageRole, Thread
+from memexllm.algorithms import BaseAlgorithm, FIFOAlgorithm
+from memexllm.core import Message, MessageRole, Thread
 
 
 def test_base_algorithm() -> None:

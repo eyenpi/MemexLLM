@@ -2,10 +2,9 @@ from typing import cast
 
 import pytest
 
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.history import HistoryManager
-from memexllm.core.models import Message, MessageRole, Thread
-from memexllm.storage.memory import MemoryStorage
+from memexllm.algorithms import FIFOAlgorithm
+from memexllm.core import HistoryManager, Message, MessageRole, Thread
+from memexllm.storage import MemoryStorage
 
 
 def test_history_manager_creation() -> None:
