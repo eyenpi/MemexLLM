@@ -1,8 +1,7 @@
 import pytest
 
-from memexllm.core.models import Thread
-from memexllm.storage.base import BaseStorage
-from memexllm.storage.memory import MemoryStorage
+from memexllm.core import Thread
+from memexllm.storage import BaseStorage, MemoryStorage
 
 
 def test_memory_storage_operations() -> None:

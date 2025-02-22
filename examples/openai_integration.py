@@ -2,10 +2,10 @@ import asyncio
 
 from openai import AsyncOpenAI, OpenAI
 
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.history import HistoryManager
+from memexllm.algorithms import FIFOAlgorithm
+from memexllm.core import HistoryManager
 from memexllm.integrations.openai import with_history
-from memexllm.storage.memory import MemoryStorage
+from memexllm.storage import MemoryStorage
 
 
 def sync_example() -> None:

@@ -2,10 +2,9 @@ from typing import cast
 
 import pytest
 
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.history import HistoryManager
-from memexllm.core.models import Message, MessageRole, Thread
-from memexllm.storage.memory import MemoryStorage
+from memexllm.algorithms import FIFOAlgorithm
+from memexllm.core import HistoryManager, Message, MessageRole, Thread
+from memexllm.storage import MemoryStorage
 
 
 def test_history_manager_creation() -> None:
@@ -114,3 +113,50 @@ def test_thread_property_methods() -> None:
     messages = thread.get_messages()
     assert len(messages) == 1
     assert messages[0].content == "Hello"
+
+
+def test_get_messages_thread_not_found() -> None:
+    """Test that get_messages raises ValueError when thread is not found"""
+    storage = MemoryStorage()
+    manager = HistoryManager(storage)
+
+    with pytest.raises(ValueError, match="Thread with ID nonexistent not found"):
+        manager.get_messages("nonexistent")
+
+
+def test_list_threads_pagination() -> None:
+    """Test listing threads with pagination"""
+    storage = MemoryStorage()
+    manager = HistoryManager(storage)
+
+    # Create 5 threads
+    threads = [manager.create_thread() for _ in range(5)]
+
+    # Test default pagination (limit=100, offset=0)
+    result = manager.list_threads()
+    assert len(result) == 5
+
+    # Test with limit
+    result = manager.list_threads(limit=2)
+    assert len(result) == 2
+
+    # Test with offset
+    result = manager.list_threads(limit=2, offset=2)
+    assert len(result) == 2
+    assert result[0].id == threads[2].id
+
+
+def test_delete_thread() -> None:
+    """Test deleting a thread"""
+    storage = MemoryStorage()
+    manager = HistoryManager(storage)
+
+    # Create and then delete a thread
+    thread = manager.create_thread()
+    assert manager.delete_thread(thread.id) is True
+
+    # Verify thread is gone
+    assert manager.get_thread(thread.id) is None
+
+    # Try to delete nonexistent thread
+    assert manager.delete_thread("nonexistent") is False

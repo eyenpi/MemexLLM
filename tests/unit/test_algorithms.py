@@ -2,9 +2,9 @@ from typing import cast
 
 import pytest
 
-from memexllm.algorithms.base import BaseAlgorithm
-from memexllm.algorithms.fifo import FIFOAlgorithm
-from memexllm.core.models import Message, MessageRole, Thread
+from memexllm.algorithms import BaseAlgorithm, FIFOAlgorithm
+from memexllm.core import Message, MessageRole, Thread
+from memexllm.types import MessageType, ThreadType
 
 
 def test_base_algorithm() -> None:
@@ -13,7 +13,7 @@ def test_base_algorithm() -> None:
         pass
 
     with pytest.raises(TypeError) as exc_info:
-        TestAlgorithm()  # type: ignore
+        TestAlgorithm()  # type: ignore[abstract]
 
     error_msg = str(exc_info.value)
     assert "abstract class" in error_msg
@@ -129,3 +129,17 @@ def test_fifo_metadata_preservation() -> None:
     assert len(thread.messages) == 2
     assert thread.messages[0].metadata == {"processed": True}
     assert thread.messages[1].metadata == {"final": True}
+
+
+def test_type_hints_usage() -> None:
+    """Test that type hints from types.py are used correctly"""
+    # This test ensures types.py is imported and used
+    msg: MessageType = Message(content="Test", role="user")
+    thread: ThreadType = Thread(messages=[msg])
+
+    algo = FIFOAlgorithm(max_messages=1)
+    algo.process_thread(thread, msg)
+
+    assert isinstance(thread, Thread)
+    assert isinstance(msg, Message)
+    assert len(thread.messages) == 1

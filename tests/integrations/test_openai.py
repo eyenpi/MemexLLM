@@ -14,11 +14,10 @@ from openai.types.chat import (
 from openai.types.chat.chat_completion import Choice
 from openai.types.completion_usage import CompletionUsage
 
-from memexllm.algorithms.base import BaseAlgorithm
-from memexllm.core.history import HistoryManager
-from memexllm.core.models import Message, MessageRole, Thread
+from memexllm.algorithms import BaseAlgorithm
+from memexllm.core import HistoryManager, Message, MessageRole, Thread
 from memexllm.integrations.openai import _convert_to_openai_messages, with_history
-from memexllm.storage.base import BaseStorage
+from memexllm.storage import BaseStorage
 
 
 class MockStorage(BaseStorage):
