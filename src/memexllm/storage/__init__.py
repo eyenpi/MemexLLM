@@ -1,4 +1,7 @@
+"""Storage backends for MemexLLM."""
+
 from .base import BaseStorage
 from .memory import MemoryStorage
+from .sqlite import SQLiteStorage
 
-__all__ = ["MemoryStorage", "BaseStorage"]
+__all__ = ["BaseStorage", "MemoryStorage", "SQLiteStorage"]

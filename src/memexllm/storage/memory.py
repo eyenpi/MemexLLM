@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
 from ..core.models import Thread
@@ -14,33 +15,68 @@ class MemoryStorage(BaseStorage):
 
     Attributes:
         threads (Dict[str, Thread]): Dictionary mapping thread IDs to Thread objects
+        max_messages (Optional[int]): Maximum number of messages to store per thread
     """
 
-    def __init__(self) -> None:
-        """Initialize an empty in-memory storage."""
+    def __init__(self, max_messages: Optional[int] = None) -> None:
+        """
+        Initialize an empty in-memory storage.
+
+        Args:
+            max_messages: Maximum number of messages to store per thread.
+                If None, store all messages.
+        """
+        super().__init__(max_messages=max_messages)
         self.threads: Dict[str, Thread] = {}
 
     def save_thread(self, thread: Thread) -> None:
         """
         Save or update a thread in memory.
 
+        If max_messages is set, only stores the most recent messages up to max_messages.
+
         Args:
             thread (Thread): The thread to save. If a thread with the same ID
                 already exists, it will be overwritten.
         """
-        self.threads[thread.id] = thread
+        # Create a copy to avoid modifying the original thread
+        thread_copy = deepcopy(thread)
 
-    def get_thread(self, thread_id: str) -> Optional[Thread]:
+        # Apply storage limit if set
+        if (
+            self.max_messages is not None
+            and len(thread_copy.messages) > self.max_messages
+        ):
+            thread_copy.messages = thread_copy.messages[-self.max_messages :]
+
+        self.threads[thread_copy.id] = thread_copy
+
+    def get_thread(
+        self, thread_id: str, message_limit: Optional[int] = None
+    ) -> Optional[Thread]:
         """
         Retrieve a thread by its ID.
 
         Args:
             thread_id (str): The unique identifier of the thread to retrieve
+            message_limit (Optional[int]): Maximum number of most recent messages to return.
+                If None, return all stored messages.
 
         Returns:
             Optional[Thread]: The thread if found, None otherwise
         """
-        return self.threads.get(thread_id)
+        thread = self.threads.get(thread_id)
+        if not thread:
+            return None
+
+        # Create a copy to avoid modifying stored thread
+        thread_copy = deepcopy(thread)
+
+        # Apply message limit if set
+        if message_limit is not None and len(thread_copy.messages) > message_limit:
+            thread_copy.messages = thread_copy.messages[-message_limit:]
+
+        return thread_copy
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> List[Thread]:
         """
@@ -53,18 +89,9 @@ class MemoryStorage(BaseStorage):
         Returns:
             List[Thread]: List of threads, ordered by their insertion order.
                 Returns an empty list if offset is greater than the number of threads.
-
-        Example:
-            ```python
-            # Get first 10 threads
-            first_page = storage.list_threads(limit=10)
-
-            # Get next 10 threads
-            second_page = storage.list_threads(limit=10, offset=10)
-            ```
         """
         threads = list(self.threads.values())
-        return threads[offset : offset + limit]
+        return [deepcopy(t) for t in threads[offset : offset + limit]]
 
     def delete_thread(self, thread_id: str) -> bool:
         """
@@ -83,42 +110,40 @@ class MemoryStorage(BaseStorage):
 
     def search_threads(self, query: Dict[str, Any]) -> List[Thread]:
         """
-        Search threads based on metadata fields.
-
-        This is a basic implementation that only supports exact matching on metadata
-        fields. All conditions in the query must match for a thread to be included
-        in the results.
+        Search for threads matching criteria.
 
         Args:
-            query (Dict[str, Any]): Search criteria as a dictionary. Currently only
-                supports metadata field matching through the "metadata" key.
+            query: Search criteria. Currently supports:
+                - metadata: Dict of metadata key-value pairs to match
+                - content: String to search for in message content
 
         Returns:
-            List[Thread]: List of threads that match all search criteria
-
-        Example:
-            ```python
-            # Find threads with specific metadata values
-            matching_threads = storage.search_threads({
-                "metadata": {
-                    "user_id": "123",
-                    "category": "support"
-                }
-            })
-            ```
+            List of matching threads
         """
         results = []
 
         for thread in self.threads.values():
             match = True
 
-            # Check metadata matches
-            for key, value in query.get("metadata", {}).items():
-                if key not in thread.metadata or thread.metadata[key] != value:
+            # Check metadata matches if specified
+            if "metadata" in query:
+                for key, value in query["metadata"].items():
+                    if key not in thread.metadata or thread.metadata[key] != value:
+                        match = False
+                        break
+
+            # Check content match if specified
+            if match and "content" in query:
+                content_match = False
+                search_content = query["content"].lower()
+                for message in thread.messages:
+                    if search_content in message.content.lower():
+                        content_match = True
+                        break
+                if not content_match:
                     match = False
-                    break
 
             if match:
-                results.append(thread)
+                results.append(deepcopy(thread))
 
         return results

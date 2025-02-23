@@ -9,21 +9,21 @@ memexllm.algorithms.base module
 
 .. automodule:: memexllm.algorithms.base
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 memexllm.algorithms.fifo module
 -------------------------------
 
 .. automodule:: memexllm.algorithms.fifo
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: memexllm.algorithms
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

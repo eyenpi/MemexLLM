@@ -9,13 +9,13 @@ memexllm.integrations.openai module
 
 .. automodule:: memexllm.integrations.openai
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: memexllm.integrations
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

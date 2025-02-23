@@ -9,21 +9,29 @@ memexllm.storage.base module
 
 .. automodule:: memexllm.storage.base
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 memexllm.storage.memory module
 ------------------------------
 
 .. automodule:: memexllm.storage.memory
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
+
+memexllm.storage.sqlite module
+------------------------------
+
+.. automodule:: memexllm.storage.sqlite
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: memexllm.storage
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
