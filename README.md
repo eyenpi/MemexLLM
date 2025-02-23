@@ -69,7 +69,7 @@ Here are the planned features and improvements for MemexLLM:
 - [ ] Anthropic integration
 - [ ] LiteLLM integration
 - [ ] MongoDB storage backend support
-- [ ] SQLite storage backend support
+- [x] SQLite storage backend support
 - [ ] Redis storage backend support
 - [ ] PostgreSQL storage backend support
 - [ ] Conversation summarization algorithm
