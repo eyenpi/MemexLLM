@@ -21,13 +21,13 @@ memexllm.types module
 
 .. automodule:: memexllm.types
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: memexllm
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:

@@ -9,21 +9,21 @@ memexllm.core.history module
 
 .. automodule:: memexllm.core.history
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 memexllm.core.models module
 ---------------------------
 
 .. automodule:: memexllm.core.models
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
 Module contents
 ---------------
 
 .. automodule:: memexllm.core
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
