@@ -18,6 +18,9 @@ classifiers = [
 ]
 dynamic = ["dependencies"]
 
+[project.optional-dependencies]
+sqlite = ["aiosqlite>=0.19.0"]
+
 [project.urls]
 repository = "https://github.com/eyenpi/memexllm"
 
@@ -43,6 +46,12 @@ m2r2 = "^0.3.3.post2"
 
 [tool.poetry.group.openai.dependencies]
 openai = "^1.63.0"
+
+[tool.poetry.group.sqlite]
+optional = true
+
+[tool.poetry.group.sqlite.dependencies]
+aiosqlite = "^0.19.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -20,6 +20,14 @@ memexllm.storage.memory module
    :show-inheritance:
    :undoc-members:
 
+memexllm.storage.sqlite module
+------------------------------
+
+.. automodule:: memexllm.storage.sqlite
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 
