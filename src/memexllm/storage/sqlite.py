@@ -61,7 +61,8 @@ class SQLiteSchema:
     GET_THREAD_MESSAGES = """
         SELECT * FROM messages 
         WHERE thread_id = ? 
-        ORDER BY message_index
+        ORDER BY message_index DESC
+        LIMIT ?
     """
     LIST_THREADS = """
         SELECT * FROM threads 
@@ -78,14 +79,20 @@ class SQLiteStorage(BaseStorage):
 
     Attributes:
         db_path: Path to the SQLite database file
+        max_messages: Maximum number of messages to store per thread
     """
 
-    def __init__(self, db_path: str = "memexllm.db"):
+    def __init__(
+        self, db_path: str = "memexllm.db", max_messages: Optional[int] = None
+    ):
         """Initialize SQLite storage.
 
         Args:
             db_path: Path to SQLite database file
+            max_messages: Maximum number of messages to store per thread.
+                If None, store all messages.
         """
+        super().__init__(max_messages=max_messages)
         self.db_path = db_path
         self._init_db()
 
@@ -211,10 +218,7 @@ class SQLiteStorage(BaseStorage):
     def save_thread(self, thread: Thread) -> None:
         """Save or update a thread and its messages.
 
-        This method maintains referential integrity by:
-        1. Saving the thread first
-        2. Deleting existing messages
-        3. Saving new messages in order
+        If max_messages is set, only stores the most recent messages up to max_messages.
 
         Args:
             thread: Thread to save
@@ -227,18 +231,26 @@ class SQLiteStorage(BaseStorage):
             conn.execute(SQLiteSchema.DELETE_THREAD_MESSAGES, (thread.id,))
 
             # Save messages with their order preserved
-            for idx, msg in enumerate(thread.messages):
+            messages = thread.messages
+            if self.max_messages is not None and len(messages) > self.max_messages:
+                messages = messages[-self.max_messages :]
+
+            for idx, msg in enumerate(messages):
                 conn.execute(
                     SQLiteSchema.INSERT_MESSAGE,
                     self._message_to_row(msg, thread.id, idx),
                 )
             conn.commit()
 
-    def get_thread(self, thread_id: str) -> Optional[Thread]:
+    def get_thread(
+        self, thread_id: str, message_limit: Optional[int] = None
+    ) -> Optional[Thread]:
         """Retrieve a thread by ID.
 
         Args:
             thread_id: ID of the thread to retrieve
+            message_limit: Maximum number of most recent messages to return.
+                If None, return all stored messages.
 
         Returns:
             Thread if found, None otherwise
@@ -250,13 +262,15 @@ class SQLiteStorage(BaseStorage):
             if not thread_row:
                 return None
 
-            # Get messages in order
+            # Get messages in order with limit
+            limit = message_limit if message_limit is not None else -1
             msg_rows = conn.execute(
-                SQLiteSchema.GET_THREAD_MESSAGES, (thread_id,)
+                SQLiteSchema.GET_THREAD_MESSAGES, (thread_id, limit)
             ).fetchall()
 
             # Convert rows to objects
             messages = [self._row_to_message(row) for row in msg_rows]
+            messages.reverse()  # Reverse since we ordered DESC in query
             return self._row_to_thread(thread_row, messages)
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> List[Thread]:

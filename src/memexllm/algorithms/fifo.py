@@ -1,3 +1,5 @@
+from typing import List
+
 from ..core.models import Message, Thread
 from .base import BaseAlgorithm
 
@@ -62,7 +64,21 @@ class FIFOAlgorithm(BaseAlgorithm):
         # Add the new message
         thread.add_message(new_message)
 
-        # Trim old messages if we exceed the maximum
-        if len(thread.messages) > self.max_messages:
-            excess = len(thread.messages) - self.max_messages
-            thread.messages = thread.messages[excess:]
+        # Get the window of messages to keep
+        thread.messages = self.get_message_window(thread.messages)
+
+    def get_message_window(self, messages: List[Message]) -> List[Message]:
+        """
+        Get the window of messages to use for context.
+
+        Returns the most recent messages up to max_messages.
+
+        Args:
+            messages: Complete list of messages in the thread
+
+        Returns:
+            List of most recent messages up to max_messages
+        """
+        if len(messages) > self.max_messages:
+            return messages[-self.max_messages :]
+        return messages

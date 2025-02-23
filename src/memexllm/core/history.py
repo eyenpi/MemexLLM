@@ -53,13 +53,26 @@ class HistoryManager:
         """
         Retrieve a thread by its ID.
 
+        If an algorithm is configured, it will determine how many messages to include
+        in the thread's history. Otherwise, all stored messages are returned.
+
         Args:
             thread_id (str): The unique identifier of the thread
 
         Returns:
             Optional[Thread]: The thread if found, None otherwise
         """
-        return self.storage.get_thread(thread_id)
+        # First get the thread with all messages
+        thread = self.storage.get_thread(thread_id)
+        if not thread:
+            return None
+
+        # Let algorithm determine message window if configured
+        if self.algorithm:
+            messages = self.algorithm.get_message_window(thread.messages)
+            thread.messages = messages
+
+        return thread
 
     def add_message(
         self,
@@ -71,8 +84,10 @@ class HistoryManager:
         """
         Add a message to an existing thread.
 
-        This method will apply the configured history management algorithm (if any)
-        before saving the message.
+        This method will:
+        1. Store the full message history in storage
+        2. Apply the algorithm only for context management
+        3. Keep storage and algorithm concerns separate
 
         Args:
             thread_id (str): ID of the thread to add the message to
@@ -87,24 +102,31 @@ class HistoryManager:
         Raises:
             ValueError: If the specified thread_id does not exist
         """
+        # Get full thread history
         thread = self.storage.get_thread(thread_id)
         if not thread:
             raise ValueError(f"Thread with ID {thread_id} not found")
 
+        # Create the new message
         message = Message(content=content, role=role, metadata=metadata or {})
 
-        # Apply history management algorithm if provided
-        if self.algorithm:
-            self.algorithm.process_thread(thread, message)
-        else:
-            thread.add_message(message)
-
+        # Add message to storage (this will handle storage's max_messages limit)
+        thread.add_message(message)
         self.storage.save_thread(thread)
+
+        # If there's an algorithm, apply it to a copy for context management
+        if self.algorithm:
+            context_thread = Thread(id=thread.id, messages=thread.messages.copy())
+            self.algorithm.process_thread(context_thread, message)
+
         return message
 
     def get_messages(self, thread_id: str) -> List[Message]:
         """
-        Get all messages in a thread.
+        Get messages from a thread.
+
+        If an algorithm is configured, it will determine how many messages to return
+        from the thread's history. Otherwise, all stored messages are returned.
 
         Args:
             thread_id (str): ID of the thread to retrieve messages from
@@ -115,7 +137,7 @@ class HistoryManager:
         Raises:
             ValueError: If the specified thread_id does not exist
         """
-        thread = self.storage.get_thread(thread_id)
+        thread = self.get_thread(thread_id)
         if not thread:
             raise ValueError(f"Thread with ID {thread_id} not found")
         return thread.messages
@@ -131,7 +153,11 @@ class HistoryManager:
         Returns:
             List[Thread]: List of thread instances
         """
-        return self.storage.list_threads(limit, offset)
+        threads = self.storage.list_threads(limit, offset)
+        if self.algorithm:
+            for thread in threads:
+                thread.messages = self.algorithm.get_message_window(thread.messages)
+        return threads
 
     def delete_thread(self, thread_id: str) -> bool:
         """

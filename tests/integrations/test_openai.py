@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -22,13 +22,24 @@ from memexllm.storage import BaseStorage
 
 class MockStorage(BaseStorage):
     def __init__(self) -> None:
+        super().__init__()
         self.threads: dict[str, Thread] = {}
 
     def save_thread(self, thread: Thread) -> None:
         self.threads[thread.id] = thread
 
-    def get_thread(self, thread_id: str) -> Thread | None:
-        return self.threads.get(thread_id)
+    def get_thread(
+        self, thread_id: str, message_limit: Optional[int] = None
+    ) -> Thread | None:
+        thread = self.threads.get(thread_id)
+        if not thread:
+            return None
+
+        if message_limit is not None and len(thread.messages) > message_limit:
+            thread_copy = Thread(id=thread.id, metadata=thread.metadata)
+            thread_copy.messages = thread.messages[-message_limit:]
+            return thread_copy
+        return thread
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> list[Thread]:
         return list(self.threads.values())[offset : offset + limit]
@@ -43,15 +54,14 @@ class MockStorage(BaseStorage):
         # Simple mock implementation that returns all threads
         return list(self.threads.values())
 
-    def create_thread(self) -> Thread:
-        thread = Thread()
-        self.save_thread(thread)
-        return thread
-
 
 class MockAlgorithm(BaseAlgorithm):
     def process_thread(self, thread: Thread, new_message: Message) -> None:
         thread.add_message(new_message)
+
+    def get_message_window(self, messages: List[Message]) -> List[Message]:
+        # Simple implementation that returns all messages
+        return messages
 
 
 @pytest.fixture

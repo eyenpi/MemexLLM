@@ -1,6 +1,7 @@
 import pytest
 
 from memexllm.core import Thread
+from memexllm.core.models import Message
 from memexllm.storage import BaseStorage, MemoryStorage
 
 
@@ -75,6 +76,11 @@ def test_memory_storage_search() -> None:
     thread2 = Thread(id="2", metadata={"category": "personal", "priority": "low"})
     thread3 = Thread(id="3", metadata={"category": "work", "priority": "low"})
 
+    # Add some messages
+    thread1.add_message(Message(content="Important work meeting", role="user"))
+    thread2.add_message(Message(content="Grocery list", role="user"))
+    thread3.add_message(Message(content="Work report", role="user"))
+
     storage.save_thread(thread1)
     storage.save_thread(thread2)
     storage.save_thread(thread3)
@@ -84,16 +90,23 @@ def test_memory_storage_search() -> None:
     assert len(work_threads) == 2
     assert all(t.metadata["category"] == "work" for t in work_threads)
 
-    # Test searching with multiple criteria
-    high_priority_work = storage.search_threads(
-        {"metadata": {"category": "work", "priority": "high"}}
-    )
-    assert len(high_priority_work) == 1
-    assert high_priority_work[0].id == "1"
+    high_priority = storage.search_threads({"metadata": {"priority": "high"}})
+    assert len(high_priority) == 1
+    assert high_priority[0].metadata["priority"] == "high"
 
-    # Test search with non-existent criteria
-    no_results = storage.search_threads({"metadata": {"category": "non-existent"}})
-    assert len(no_results) == 0
+    # Test searching by content
+    work_content = storage.search_threads({"content": "work"})
+    assert len(work_content) == 2
+
+    grocery_content = storage.search_threads({"content": "grocery"})
+    assert len(grocery_content) == 1
+
+    # Test combined search
+    work_high = storage.search_threads(
+        {"metadata": {"category": "work", "priority": "high"}, "content": "meeting"}
+    )
+    assert len(work_high) == 1
+    assert work_high[0].id == "1"
 
 
 def test_memory_storage_pagination() -> None:
@@ -114,3 +127,76 @@ def test_memory_storage_pagination() -> None:
 
     last_page = storage.list_threads(limit=2, offset=4)
     assert len(last_page) == 1
+
+
+def test_memory_storage_init() -> None:
+    """Test MemoryStorage initialization"""
+    storage = MemoryStorage()
+    assert storage.threads == {}
+    assert storage.max_messages is None
+
+    storage = MemoryStorage(max_messages=10)
+    assert storage.threads == {}
+    assert storage.max_messages == 10
+
+
+def test_memory_storage_save_and_get() -> None:
+    """Test basic save and get operations"""
+    storage = MemoryStorage()
+    thread = Thread(id="test")
+    storage.save_thread(thread)
+
+    retrieved = storage.get_thread("test")
+    assert retrieved is not None
+    assert retrieved.id == "test"
+    assert retrieved is not thread  # Should be a copy
+
+
+def test_memory_storage_message_limit() -> None:
+    """Test message limiting in storage"""
+    storage = MemoryStorage(max_messages=2)
+    thread = Thread(id="test")
+
+    # Add 3 messages
+    for i in range(3):
+        thread.add_message(Message(content=f"msg{i}", role="user"))
+
+    storage.save_thread(thread)
+    retrieved = storage.get_thread("test")
+    assert retrieved is not None
+    assert len(retrieved.messages) == 2
+    assert [m.content for m in retrieved.messages] == ["msg1", "msg2"]
+
+
+def test_memory_storage_get_with_limit() -> None:
+    """Test get_thread with message_limit parameter"""
+    storage = MemoryStorage()
+    thread = Thread(id="test")
+
+    # Add 5 messages
+    for i in range(5):
+        thread.add_message(Message(content=f"msg{i}", role="user"))
+
+    storage.save_thread(thread)
+
+    # Get with limit
+    retrieved = storage.get_thread("test", message_limit=3)
+    assert retrieved is not None
+    assert len(retrieved.messages) == 3
+    assert [m.content for m in retrieved.messages] == ["msg2", "msg3", "msg4"]
+
+    # Get without limit
+    retrieved = storage.get_thread("test")
+    assert retrieved is not None
+    assert len(retrieved.messages) == 5
+
+
+def test_memory_storage_delete() -> None:
+    """Test thread deletion"""
+    storage = MemoryStorage()
+    thread = Thread(id="test")
+    storage.save_thread(thread)
+
+    assert storage.delete_thread("test") is True
+    assert storage.get_thread("test") is None
+    assert storage.delete_thread("test") is False  # Already deleted
