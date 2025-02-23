@@ -262,11 +262,24 @@ class SQLiteStorage(BaseStorage):
             if not thread_row:
                 return None
 
+            # Determine effective limit:
+            # - If message_limit is set, use it
+            # - Otherwise if max_messages is set, use it
+            # - Otherwise no limit (-1)
+            effective_limit = (
+                message_limit
+                if message_limit is not None
+                else self.max_messages if self.max_messages is not None else -1
+            )
+
             # Get messages in order with limit
-            limit = message_limit if message_limit is not None else -1
-            msg_rows = conn.execute(
-                SQLiteSchema.GET_THREAD_MESSAGES, (thread_id, limit)
-            ).fetchall()
+            query = """
+                SELECT * FROM messages 
+                WHERE thread_id = ? 
+                ORDER BY message_index DESC
+                LIMIT ?
+            """
+            msg_rows = conn.execute(query, (thread_id, effective_limit)).fetchall()
 
             # Convert rows to objects
             messages = [self._row_to_message(row) for row in msg_rows]

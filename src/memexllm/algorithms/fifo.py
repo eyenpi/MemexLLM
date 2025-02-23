@@ -1,3 +1,5 @@
+"""FIFO algorithm for conversation history management."""
+
 from typing import List
 
 from ..core.models import Message, Thread
@@ -39,7 +41,11 @@ class FIFOAlgorithm(BaseAlgorithm):
         """
         if max_messages <= 0:
             raise ValueError("max_messages must be greater than 0")
-        self.max_messages = max_messages
+        # Unlike base class, FIFO algorithm always requires a max_messages value
+        super().__init__(max_messages=max_messages)
+        # Ensure max_messages is treated as a non-optional int for type checking
+        assert self.max_messages is not None
+        self._max_messages: int = self.max_messages
 
     def process_thread(self, thread: Thread, new_message: Message) -> None:
         """
@@ -79,6 +85,6 @@ class FIFOAlgorithm(BaseAlgorithm):
         Returns:
             List of most recent messages up to max_messages
         """
-        if len(messages) > self.max_messages:
-            return messages[-self.max_messages :]
+        if len(messages) > self._max_messages:
+            return messages[-self._max_messages :]
         return messages

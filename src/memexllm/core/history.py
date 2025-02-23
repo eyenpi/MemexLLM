@@ -62,12 +62,15 @@ class HistoryManager:
         Returns:
             Optional[Thread]: The thread if found, None otherwise
         """
-        # First get the thread with all messages
-        thread = self.storage.get_thread(thread_id)
+        # Get the effective message limit from algorithm
+        message_limit = self.algorithm.max_messages if self.algorithm else None
+
+        # Get thread with optimized message limit
+        thread = self.storage.get_thread(thread_id, message_limit=message_limit)
         if not thread:
             return None
 
-        # Let algorithm determine message window if configured
+        # Let algorithm process messages if configured
         if self.algorithm:
             messages = self.algorithm.get_message_window(thread.messages)
             thread.messages = messages

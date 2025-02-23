@@ -1,5 +1,7 @@
+"""Base class for history management algorithms."""
+
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from ..core.models import Message, Thread
@@ -7,6 +9,16 @@ if TYPE_CHECKING:
 
 class BaseAlgorithm(ABC):
     """Abstract base class for history management algorithms"""
+
+    def __init__(self, max_messages: Optional[int] = None):
+        """
+        Initialize algorithm with optional message limit.
+
+        Args:
+            max_messages: Maximum number of messages to include in context window.
+                If None, include all messages.
+        """
+        self.max_messages = max_messages
 
     @abstractmethod
     def process_thread(self, thread: "Thread", new_message: "Message") -> None:
