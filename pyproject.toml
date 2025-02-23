@@ -43,6 +43,7 @@ sphinx = ">=6.2.1,<7.0.0"
 sphinx-rtd-theme = ">=2.0.0"
 sphinx-autodoc-typehints = "<2.0.0"
 m2r2 = "^0.3.3.post2"
+aiosqlite = "^0.19.0"
 
 [tool.poetry.group.openai.dependencies]
 openai = "^1.63.0"
