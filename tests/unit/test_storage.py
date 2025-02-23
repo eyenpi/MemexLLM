@@ -165,7 +165,17 @@ def test_memory_storage_message_limit() -> None:
     retrieved = storage.get_thread("test")
     assert retrieved is not None
     assert len(retrieved.messages) == 2
+    # Should keep the most recent 2 messages (msg1, msg2)
     assert [m.content for m in retrieved.messages] == ["msg1", "msg2"]
+
+    # Add another message to verify sliding window behavior
+    thread.add_message(Message(content="msg3", role="user"))
+    storage.save_thread(thread)
+    retrieved = storage.get_thread("test")
+    assert retrieved is not None
+    assert len(retrieved.messages) == 2
+    # Should now have msg2 and msg3, as they are the most recent
+    assert [m.content for m in retrieved.messages] == ["msg2", "msg3"]
 
 
 def test_memory_storage_get_with_limit() -> None:
