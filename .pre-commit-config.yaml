@@ -23,3 +23,11 @@ repos:
             - pytest>=7.0.0
             - pytest-asyncio>=0.23.0
             # Add other type stubs as needed for your project's dependencies 
+-   repo: local
+    hooks:
+    -   id: build-docs
+        name: Build Documentation
+        entry: bash -c 'pip install -e . "sphinx>=6.2.1,<7.0.0" "sphinx-rtd-theme>=2.0.0" "sphinx-autodoc-typehints<2.0.0" "openai>=1.63.0" && python scripts/build_docs.py'
+        language: python
+        pass_filenames: false
+        files: ^(src/|docs/source/) 
