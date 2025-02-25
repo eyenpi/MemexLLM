@@ -1,7 +1,7 @@
 <h1 align="center">🐟 MemexLLM</h1>
 
 <p align="center">
-  <img src="docs/website/static/img/memex_logo.svg" alt="MemexLLM Logo" width="200"/>
+  <img src="https://raw.githubusercontent.com/eyenpi/memexllm/main/docs/website/static/img/memex_logo.svg" alt="MemexLLM Logo" width="200"/>
 </p>
 
 <p align="center">
