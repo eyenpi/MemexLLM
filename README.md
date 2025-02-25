@@ -62,14 +62,17 @@ Add conversation management to your OpenAI application with no code changes:
 
 ```python
 from openai import OpenAI
-from memexllm.integrations.openai import patch_openai
+from memexllm.integrations.openai import with_history
+from memexllm.storage import MemoryStorage
+from memexllm.algorithms import FIFOAlgorithm
 
 # Initialize your OpenAI client as usual
 client = OpenAI(api_key="your-api-key")
 
-# Patch the OpenAI client to add conversation management
-# This adds persistence without changing your existing code
-patch_openai(client)
+# Add conversation memory with history management
+storage = MemoryStorage()
+algorithm = FIFOAlgorithm(max_messages=100)
+client = with_history(storage=storage, algorithm=algorithm)(client)
 
 # Use the client as you normally would - conversations are now managed automatically
 response = client.chat.completions.create(
