@@ -83,6 +83,10 @@ class HistoryManager:
         content: str,
         role: MessageRole,
         metadata: Optional[Dict[str, Any]] = None,
+        tool_calls: Optional[List[Any]] = None,
+        tool_call_id: Optional[str] = None,
+        function_call: Optional[Dict[str, Any]] = None,
+        name: Optional[str] = None,
     ) -> Message:
         """
         Add a message to an existing thread.
@@ -98,6 +102,10 @@ class HistoryManager:
             role (MessageRole): Role of the message sender (e.g., user, assistant)
             metadata (Optional[Dict[str, Any]]): Optional metadata to associate with
                 the message
+            tool_calls (Optional[List[Any]]): Tool calls made in this message
+            tool_call_id (Optional[str]): ID of the tool call this message is responding to
+            function_call (Optional[Dict[str, Any]]): Function call details if this message contains a function call
+            name (Optional[str]): Name field for function messages
 
         Returns:
             Message: The newly created message instance
@@ -111,7 +119,15 @@ class HistoryManager:
             raise ValueError(f"Thread with ID {thread_id} not found")
 
         # Create the new message
-        message = Message(content=content, role=role, metadata=metadata or {})
+        message = Message(
+            content=content,
+            role=role,
+            metadata=metadata or {},
+            tool_calls=tool_calls,
+            tool_call_id=tool_call_id,
+            function_call=function_call,
+            name=name,
+        )
 
         # Add message to storage (this will handle storage's max_messages limit)
         thread.add_message(message)

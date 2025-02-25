@@ -47,7 +47,10 @@ jobs:
       run: poetry run mypy src --exclude examples/
 
     - name: Run tests with pytest
+      env:
+        OPENAI_API_KEY: sk-dummy-api-key-for-testing-only
       run: poetry run pytest -v --cov=src --cov-report=xml
+      
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
