@@ -15,6 +15,13 @@ export default function Home(): ReactElement {
         maxWidth: '800px',
         margin: '0 auto',
       }}>
+        <div style={{marginBottom: '2rem'}}>
+          <img 
+            src="/MemexLLM/img/memex_logo.svg" 
+            alt="MemexLLM Logo" 
+            style={{width: '200px'}}
+          />
+        </div>
         <h1>{siteConfig.title}</h1>
         <p style={{fontSize: '1.2rem', margin: '2rem 0'}}>
           {siteConfig.tagline}

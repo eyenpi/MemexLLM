@@ -6,15 +6,17 @@ import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
   title: 'MemexLLM',
-  tagline: 'A Python library for robust LLM conversation management',
-  favicon: 'img/favicon.ico',
+  tagline: 'Robust conversation management for Large Language Models',
+  favicon: 'img/memex_logo.svg',
 
   // Set the production url of your site here
   url: 'https://eyenpi.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
+  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/MemexLLM/',
 
   // GitHub pages deployment config.
+  // If you aren't using GitHub pages, you don't need these.
   organizationName: 'eyenpi', // Usually your GitHub org/user name.
   projectName: 'MemexLLM', // Usually your repo name.
 
@@ -37,7 +39,6 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/eyenpi/MemexLLM/tree/main/docs/website/',
         },
-        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -46,18 +47,14 @@ const config: Config = {
   ],
 
   themeConfig: {
-    // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    // Replace this with your project's social card
+    image: 'img/memex_logo.svg',
     navbar: {
-      title: 'MemexLLM',
-      logo: {
-        alt: 'MemexLLM Logo',
-        src: 'img/logo.svg',
-      },
+      title: '🐟 MemexLLM',
       items: [
         {
           type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          sidebarId: 'docs',  // Update this to match our sidebar ID
           position: 'left',
           label: 'Documentation',
         },
@@ -72,12 +69,17 @@ const config: Config = {
       style: 'dark',
       links: [
         {
-          title: 'Links',
+          title: 'Docs',
           items: [
             {
               label: 'Documentation',
               to: '/docs/intro',
             },
+          ],
+        },
+        {
+          title: 'Community',
+          items: [
             {
               label: 'GitHub',
               href: 'https://github.com/eyenpi/MemexLLM',

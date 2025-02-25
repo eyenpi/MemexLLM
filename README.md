@@ -1,34 +1,39 @@
-# MemexLLM
+<h1 align="center">🐟 MemexLLM</h1>
 
-[![CI](https://github.com/eyenpi/memexllm/actions/workflows/ci.yml/badge.svg)](https://github.com/eyenpi/memexllm/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/eyenpi/memexllm/branch/main/graph/badge.svg?token=7C386MR8T9)](https://codecov.io/gh/eyenpi/memexllm)
-[![PyPI version](https://badge.fury.io/py/memexllm.svg)](https://badge.fury.io/py/memexllm)
-[![Python versions](https://img.shields.io/pypi/pyversions/memexllm.svg)](https://pypi.org/project/memexllm/)
+<p align="center">
+  <img src="docs/website/static/img/memex_logo.svg" alt="MemexLLM Logo" width="200"/>
+</p>
+
+<p align="center">
+  <a href="https://github.com/eyenpi/memexllm/actions/workflows/ci.yml"><img src="https://github.com/eyenpi/memexllm/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/eyenpi/memexllm"><img src="https://codecov.io/gh/eyenpi/memexllm/branch/main/graph/badge.svg?token=7C386MR8T9" alt="codecov"></a>
+  <a href="https://badge.fury.io/py/memexllm"><img src="https://badge.fury.io/py/memexllm.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/memexllm/"><img src="https://img.shields.io/pypi/pyversions/memexllm.svg" alt="Python versions"></a>
+</p>
 
 ## Overview
 
 MemexLLM is a Python library for managing and storing LLM conversations. It provides a flexible and extensible framework for history management, storage, and retrieval of conversations.
 
-## Installation
+## Features
 
-Choose the installation option that best suits your needs:
+- **Drop-in Integrations**: Add conversation management to your LLM applications with **zero code changes** using our provider integrations
+- **Flexible Storage**: Choose from memory, SQLite, or bring your own storage backend
+- **Conversation Management**: Organize, retrieve, and manipulate conversation threads with ease
+- **Memory Management Algorithms**: Control conversation context with built-in algorithms (FIFO, summarization, etc.)
+- **Provider Agnostic**: Works with OpenAI, Anthropic, and other LLM providers
+- **Extensible Architecture**: Build custom storage backends and memory management algorithms
 
-### Basic Installation
+## Quick Start
+
+### Installation
+
 ```bash
-pip install memexllm
+pip install memexllm  # Basic installation
+pip install memexllm[openai]  # With OpenAI support
 ```
 
-### OpenAI Installation
-```bash
-pip install memexllm[openai]
-```
-
-### Development Installation
-```bash
-pip install memexllm[dev]
-```
-
-## Quick Usage
+### Basic Usage
 
 ```python
 from memexllm.storage import MemoryStorage
@@ -49,104 +54,45 @@ history_manager.add_message(
     content="Hello, how can I help you today?",
     role="assistant"
 )
-
-# Retrieve conversation
-thread = history_manager.get_thread(thread.id)
-for msg in thread.messages:
-    print(f"{msg.role}: {msg.content}")
 ```
 
+### Zero-Code-Change Integration
 
-For more examples check out the [examples](examples/) directory.
-## Feature Roadmap
+Add conversation management to your OpenAI application with no code changes:
 
-Here are the planned features and improvements for MemexLLM:
+```python
+from openai import OpenAI
+from memexllm.integrations.openai import patch_openai
 
-### Short-term Goals
-- [x] OpenAI integration
-- [x] Memory storage backend
-- [x] FIFO algorithm
-- [ ] Anthropic integration
-- [ ] LiteLLM integration
-- [ ] MongoDB storage backend support
-- [x] SQLite storage backend support
-- [ ] Redis storage backend support
-- [ ] PostgreSQL storage backend support
-- [ ] Conversation summarization algorithm
-- [ ] Other algorithms
-- [ ] Export conversations to various formats (JSON, CSV, PDF)
+# Initialize your OpenAI client as usual
+client = OpenAI(api_key="your-api-key")
 
-### Medium-term Goals
-- [ ] Advanced conversation analytics
-- [ ] Integration with popular LLM providers
-- [ ] Conversation branching and versioning
+# Patch the OpenAI client to add conversation management
+# This adds persistence without changing your existing code
+patch_openai(client)
 
-### Long-term Goals
-- [ ] Distributed storage support
-- [ ] Multi-modal conversation support
-- [ ] Advanced privacy and security features
-- [ ] API Gateway integration
-- [ ] Enterprise-grade features
+# Use the client as you normally would - conversations are now managed automatically
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello, who are you?"}]
+)
+```
+
+## Documentation
+
+For detailed documentation, including:
+- Complete API reference
+- Advanced usage examples
+- Available storage backends
+- Contributing guidelines
+- Feature roadmap
+
+Visit our documentation at: https://eyenpi.github.io/MemexLLM/
 
 ## Contributing
 
-We welcome contributions from the community! Here's how you can help:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started.
 
-### Ways to Contribute
-1. **Code Contributions**
-   - Fork the repository
-   - Create a feature branch
-   - Write clean, documented, and tested code
-   - Submit a pull request
+## License
 
-2. **Bug Reports**
-   - Use the GitHub issue tracker
-   - Include detailed steps to reproduce
-   - Provide system information and context
-
-3. **Feature Requests**
-   - Open a GitHub issue with the "enhancement" label
-   - Describe the feature and its use cases
-   - Discuss with the community
-
-4. **Documentation**
-   - Help improve documentation
-   - Write tutorials and examples
-   - Fix typos and clarify explanations
-
-### Development Setup
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/eyenpi/memexllm.git
-   cd memexllm
-   ```
-
-2. Install development dependencies:
-   ```bash
-   pip install -e ".[dev]"
-   ```
-
-3. Install pre-commit hooks:
-   ```bash
-   pip install pre-commit
-   pre-commit install
-   ```
-
-### Running Tests
-
-```bash
-pytest tests/
-```
-
-### Code Style
-- We follow PEP 8 guidelines
-- Use Black for code formatting
-- Use isort for import sorting
-- Write meaningful commit messages
-
-### Review Process
-1. All code changes require tests
-2. CI must pass
-3. Code review by maintainers
-4. Documentation updates if needed
+This project is licensed under the MIT License.
