@@ -1,72 +1,14 @@
 # Upgrading MemexLLM
 
-This guide provides instructions on how to upgrade your MemexLLM installation to newer versions.
-
-## Using pip (Recommended)
-
-To upgrade MemexLLM to the latest version, run:
-
-```bash
-pip install --upgrade memexllm
-```
-
-To install a specific version, run:
-
-```bash
-pip install memexllm==X.Y.Z  # Replace X.Y.Z with the desired version number
-```
-
-For example:
-```bash
-pip install memexllm==0.0.4
-```
-
-## Manual Installation from Source
-
-If you installed MemexLLM from source, you can upgrade by following these steps:
-
-1. Navigate to your MemexLLM directory:
-   ```bash
-   cd path/to/MemexLLM
-   ```
-
-2. Pull the latest changes:
-   ```bash
-   git pull origin main
-   ```
-
-3. Check out the specific version tag (optional):
-   ```bash
-   git checkout vX.Y.Z  # Replace X.Y.Z with the desired version number
-   ```
-
-4. Reinstall the package:
-   ```bash
-   pip install -e .
-   ```
-
-## Checking Current Version
-
-You can check your currently installed version by running:
-
-```bash
-pip show memexllm
-```
-
-## Version History
-
-For a complete list of changes in each version, please refer to our [GitHub Releases page](https://github.com/eyenpi/MemexLLM/releases).
-
-## Important Notes
-
-- Always backup your data before upgrading
-- Check the release notes for any breaking changes
-- Make sure to upgrade any dependencies if required
-- If you encounter any issues, please [report them on GitHub](https://github.com/eyenpi/MemexLLM/issues)
-
 ## For Maintainers: Release Process
 
 ### Creating a New Release
+
+First bump version using poetry:
+
+```bash
+poetry version patch
+```
 
 1. Ensure all changes are committed and pushed to the `dev` branch
 2. Update version numbers in relevant files (e.g., `setup.py`, `package.json`)
