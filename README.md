@@ -1,13 +1,28 @@
-# MemexLLM
+<h1 align="center">🐟 MemexLLM</h1>
 
-[![CI](https://github.com/eyenpi/memexllm/actions/workflows/ci.yml/badge.svg)](https://github.com/eyenpi/memexllm/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/eyenpi/memexllm/branch/main/graph/badge.svg?token=7C386MR8T9)](https://codecov.io/gh/eyenpi/memexllm)
-[![PyPI version](https://badge.fury.io/py/memexllm.svg)](https://badge.fury.io/py/memexllm)
-[![Python versions](https://img.shields.io/pypi/pyversions/memexllm.svg)](https://pypi.org/project/memexllm/)
+<p align="center">
+  <img src="docs/website/static/img/memex_logo.svg" alt="MemexLLM Logo" width="200"/>
+</p>
+
+<p align="center">
+  <a href="https://github.com/eyenpi/memexllm/actions/workflows/ci.yml"><img src="https://github.com/eyenpi/memexllm/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/eyenpi/memexllm"><img src="https://codecov.io/gh/eyenpi/memexllm/branch/main/graph/badge.svg?token=7C386MR8T9" alt="codecov"></a>
+  <a href="https://badge.fury.io/py/memexllm"><img src="https://badge.fury.io/py/memexllm.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/memexllm/"><img src="https://img.shields.io/pypi/pyversions/memexllm.svg" alt="Python versions"></a>
+</p>
 
 ## Overview
 
 MemexLLM is a Python library for managing and storing LLM conversations. It provides a flexible and extensible framework for history management, storage, and retrieval of conversations.
+
+## Features
+
+- **Drop-in Integrations**: Add conversation management to your LLM applications with **zero code changes** using our provider integrations
+- **Flexible Storage**: Choose from memory, SQLite, or bring your own storage backend
+- **Conversation Management**: Organize, retrieve, and manipulate conversation threads with ease
+- **Memory Management Algorithms**: Control conversation context with built-in algorithms (FIFO, summarization, etc.)
+- **Provider Agnostic**: Works with OpenAI, Anthropic, and other LLM providers
+- **Extensible Architecture**: Build custom storage backends and memory management algorithms
 
 ## Quick Start
 
@@ -38,6 +53,28 @@ history_manager.add_message(
     thread_id=thread.id,
     content="Hello, how can I help you today?",
     role="assistant"
+)
+```
+
+### Zero-Code-Change Integration
+
+Add conversation management to your OpenAI application with no code changes:
+
+```python
+from openai import OpenAI
+from memexllm.integrations.openai import patch_openai
+
+# Initialize your OpenAI client as usual
+client = OpenAI(api_key="your-api-key")
+
+# Patch the OpenAI client to add conversation management
+# This adds persistence without changing your existing code
+patch_openai(client)
+
+# Use the client as you normally would - conversations are now managed automatically
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Hello, who are you?"}]
 )
 ```
 

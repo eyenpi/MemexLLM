@@ -7,7 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'MemexLLM',
   tagline: 'Robust conversation management for Large Language Models',
-  favicon: 'img/favicon.ico',
+  favicon: 'img/memex_logo.svg',
 
   // Set the production url of your site here
   url: 'https://eyenpi.github.io',
@@ -48,13 +48,9 @@ const config: Config = {
 
   themeConfig: {
     // Replace this with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/memex_logo.svg',
     navbar: {
-      title: 'MemexLLM',
-      logo: {
-        alt: 'MemexLLM Logo',
-        src: 'img/logo.svg',
-      },
+      title: '🐟 MemexLLM',
       items: [
         {
           type: 'docSidebar',
