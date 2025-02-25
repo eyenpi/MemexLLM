@@ -13,7 +13,44 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
  Create as many sidebars as you want.
  */
 const sidebars: SidebarsConfig = {
-  tutorialSidebar: ['intro']
+  docs: [
+    'intro',
+    {
+      type: 'category',
+      label: 'Integrations',
+      items: [
+        'integrations/overview',
+        'integrations/openai',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Storage',
+      items: [
+        'storage/overview',
+        'storage/memory',
+        'storage/sqlite',
+        'storage/custom',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Algorithms',
+      items: [
+        'algorithms/overview',
+        'algorithms/fifo',
+        'algorithms/custom',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Examples',
+      items: [
+        'examples/simple_chatbot',
+        'examples/custom_context',
+      ],
+    },
+  ],
 };
 
 export default sidebars;
