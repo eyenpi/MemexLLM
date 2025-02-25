@@ -137,9 +137,22 @@ class MemoryStorage(BaseStorage):
                 content_match = False
                 search_content = query["content"].lower()
                 for message in thread.messages:
-                    if search_content in message.content.lower():
-                        content_match = True
-                        break
+                    message_content = message.content
+                    if isinstance(message_content, str):
+                        if search_content in message_content.lower():
+                            content_match = True
+                            break
+                    else:
+                        # For structured content, check text parts
+                        for item in message_content:
+                            if (
+                                hasattr(item, "text")
+                                and search_content in item.text.lower()
+                            ):
+                                content_match = True
+                                break
+                        if content_match:
+                            break
                 if not content_match:
                     match = False
 
