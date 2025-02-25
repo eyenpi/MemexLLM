@@ -30,10 +30,15 @@ from memexllm.integrations.openai import (
 from memexllm.storage.memory import MemoryStorage
 
 
+# Patch OpenAI and AsyncOpenAI to avoid API key requirement during tests
+@patch("openai.OpenAI", autospec=True)
+@patch("openai.AsyncOpenAI", autospec=True)
 class TestOpenAIIntegrationCoverage(unittest.TestCase):
     """Additional tests to improve coverage of the OpenAI integration."""
 
-    def test_convert_multimodal_content_with_image_url(self):
+    def test_convert_multimodal_content_with_image_url(
+        self, mock_async_client, mock_client
+    ):
         """Test converting multimodal content with image URLs."""
 
         # Create a mock message with multimodal content
@@ -81,7 +86,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         self.assertEqual(result.content[1].url, "https://example.com/image.jpg")
         self.assertEqual(result.content[1].detail, "high")
 
-    def test_convert_content_to_openai_format_with_structured_content(self):
+    def test_convert_content_to_openai_format_with_structured_content(
+        self, mock_async_client, mock_client
+    ):
         """Test converting structured content to OpenAI format."""
         # Create structured content with text and image
         content = [
@@ -101,7 +108,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         self.assertEqual(result[1]["image_url"]["url"], "https://example.com/image.jpg")
         self.assertEqual(result[1]["image_url"]["detail"], "high")
 
-    def test_convert_to_openai_messages_with_tool_calls(self):
+    def test_convert_to_openai_messages_with_tool_calls(
+        self, mock_async_client, mock_client
+    ):
         """Test converting messages with tool calls to OpenAI format."""
         # Create a message with tool calls
         tool_call = ToolCallContent(
@@ -132,7 +141,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
             '{"location": "New York"}',
         )
 
-    def test_convert_to_openai_messages_with_tool_response(self):
+    def test_convert_to_openai_messages_with_tool_response(
+        self, mock_async_client, mock_client
+    ):
         """Test converting tool response messages to OpenAI format."""
         # Create a tool response message
         message = Message(
@@ -152,7 +163,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         )
         self.assertEqual(result[0]["tool_call_id"], "call_123")
 
-    def test_convert_to_openai_messages_with_function_message(self):
+    def test_convert_to_openai_messages_with_function_message(
+        self, mock_async_client, mock_client
+    ):
         """Test converting function messages to OpenAI format."""
         # Create a function message
         message = Message(
@@ -172,7 +185,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         )
         self.assertEqual(result[0]["name"], "get_weather")
 
-    def test_convert_to_openai_messages_with_developer_message(self):
+    def test_convert_to_openai_messages_with_developer_message(
+        self, mock_async_client, mock_client
+    ):
         """Test converting developer messages to OpenAI format."""
         # Create a developer message
         message = Message(
@@ -188,7 +203,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         self.assertEqual(result[0]["role"], "developer")
         self.assertEqual(result[0]["content"], "This is a developer message")
 
-    def test_convert_to_message_with_function_call(self):
+    def test_convert_to_message_with_function_call(
+        self, mock_async_client, mock_client
+    ):
         """Test converting a message with function call."""
         # Create a message with function call
         openai_msg = {
@@ -210,7 +227,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         self.assertEqual(result.function_call["name"], "get_weather")
         self.assertEqual(result.function_call["arguments"], '{"location": "New York"}')
 
-    def test_with_history_tool_calls_and_responses(self):
+    def test_with_history_tool_calls_and_responses(
+        self, mock_async_client, mock_client
+    ):
         """Test with_history decorator with tool calls and responses."""
         # Create a storage and history manager
         storage = MemoryStorage()
@@ -308,7 +327,9 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
         self.assertIsInstance(thread.messages[3].content, str)
 
     @patch("openai.resources.chat.completions.Completions.create")
-    def test_with_history_prepare_content_for_storage(self, mock_create):
+    def test_with_history_prepare_content_for_storage(
+        self, mock_create, mock_async_client, mock_client
+    ):
         """Test the _prepare_content_for_storage method in with_history."""
         # Create a storage and history manager
         storage = MemoryStorage()
@@ -381,11 +402,13 @@ class TestOpenAIIntegrationCoverage(unittest.TestCase):
             self.fail("Content should be stored as a string")
 
 
+# Patch AsyncOpenAI for the async tests
+@pytest.mark.asyncio
+@patch("openai.AsyncOpenAI", autospec=True)
 class TestOpenAIIntegrationCoverageAsync:
     """Async tests for OpenAI integration coverage."""
 
-    @pytest.mark.asyncio
-    async def test_with_history_async_tool_calls(self):
+    async def test_with_history_async_tool_calls(self, mock_async_client):
         """Test with_history decorator with async client and tool calls."""
         # Create a storage and history manager
         storage = MemoryStorage()

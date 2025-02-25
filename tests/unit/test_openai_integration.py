@@ -221,7 +221,12 @@ def patched_isinstance(obj, classinfo):
     return original_isinstance(obj, classinfo)
 
 
+# Patch OpenAI and AsyncOpenAI to avoid API key requirement during tests
+@patch("openai.OpenAI", autospec=True)
+@patch("openai.AsyncOpenAI", autospec=True)
 class TestOpenAIIntegration(unittest.TestCase):
+    """Tests for the OpenAI integration."""
+
     def setUp(self):
         """Set up test environment."""
         # Apply the isinstance patch
@@ -232,7 +237,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         # Restore the original isinstance
         builtins.isinstance = original_isinstance
 
-    def test_convert_simple_message(self):
+    def test_convert_simple_message(self, mock_async_client, mock_client):
         """Test converting a simple text message."""
         openai_msg = {"role": "user", "content": "Hello, world!"}
         msg = _convert_to_message(openai_msg)
@@ -242,7 +247,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertIsNone(msg.tool_calls)
         self.assertIsNone(msg.function_call)
 
-    def test_convert_assistant_with_tool_calls(self):
+    def test_convert_assistant_with_tool_calls(self, mock_async_client, mock_client):
         """Test converting an assistant message with tool calls."""
         openai_msg = {
             "role": "assistant",
@@ -269,7 +274,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(msg.tool_calls[0].type, "function")
         self.assertEqual(msg.tool_calls[0].function["name"], "search")
 
-    def test_convert_multimodal_message(self):
+    def test_convert_multimodal_message(self, mock_async_client, mock_client):
         """Test converting a message with multimodal content."""
         openai_msg = {
             "role": "user",
@@ -296,7 +301,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(msg.content[1].url, "https://example.com/image.jpg")
         self.assertEqual(msg.content[1].detail, "high")
 
-    def test_convert_tool_message(self):
+    def test_convert_tool_message(self, mock_async_client, mock_client):
         """Test converting a tool message."""
         openai_msg = {
             "role": "tool",
@@ -310,7 +315,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(msg.content, '{"temperature": 72, "conditions": "sunny"}')
         self.assertEqual(msg.tool_call_id, "call_123")
 
-    def test_convert_to_openai_messages(self):
+    def test_convert_to_openai_messages(self, mock_async_client, mock_client):
         """Test converting internal messages to OpenAI format."""
         messages = [
             Message(role="system", content="You are a helpful assistant."),
@@ -346,7 +351,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         )
         self.assertEqual(openai_messages[3]["name"], "get_weather")
 
-    def test_convert_multimodal_content(self):
+    def test_convert_multimodal_content(self, mock_async_client, mock_client):
         """Test converting multimodal content to OpenAI format."""
         content = [
             TextContent(text="Look at this image:"),
@@ -366,7 +371,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(openai_content[1]["image_url"]["detail"], "high")
 
     @patch("openai.resources.chat.completions.Completions.create")
-    def test_with_history_sync(self, mock_create):
+    def test_with_history_sync(self, mock_create, mock_async_client, mock_client):
         """Test the with_history decorator with a synchronous client."""
         # Setup mock response
         mock_create.return_value = MockChatCompletion()
@@ -400,7 +405,9 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(thread["messages"][1]["content"], "This is a response")
 
     @patch("openai.resources.chat.completions.Completions.create")
-    def test_with_history_existing_thread(self, mock_create):
+    def test_with_history_existing_thread(
+        self, mock_create, mock_async_client, mock_client
+    ):
         """Test the with_history decorator with an existing thread."""
         # Setup mock response
         mock_create.return_value = MockChatCompletion()
@@ -436,7 +443,9 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(thread["messages"][2]["role"], "assistant")
 
     @patch("openai.resources.chat.completions.Completions.create")
-    def test_with_history_system_message_override(self, mock_create):
+    def test_with_history_system_message_override(
+        self, mock_create, mock_async_client, mock_client
+    ):
         """Test system message override in with_history."""
         # Setup mock response
         mock_create.return_value = MockChatCompletion()
@@ -471,7 +480,7 @@ class TestOpenAIIntegration(unittest.TestCase):
         self.assertEqual(messages[0]["content"], "You are a weather expert.")
 
     @patch("openai.resources.chat.completions.AsyncCompletions.create")
-    def test_with_history_async(self, mock_create):
+    def test_with_history_async(self, mock_create, mock_async_client, mock_client):
         """Test the with_history decorator with an async client."""
         # Setup mock response
         mock_create.return_value = MockChatCompletion()
@@ -505,13 +514,13 @@ class TestOpenAIIntegration(unittest.TestCase):
         # Create and run a new event loop
         asyncio.run(run_test())
 
-    def test_with_history_no_storage(self):
+    def test_with_history_no_storage(self, mock_async_client, mock_client):
         """Test that with_history raises an error when no storage is provided."""
         client = OpenAI()
         with self.assertRaises(ValueError):
             with_history()(client)
 
-    def test_with_history_existing_manager(self):
+    def test_with_history_existing_manager(self, mock_async_client, mock_client):
         """Test with_history with an existing HistoryManager."""
         storage = MockStorage()
         history_manager = HistoryManager(storage=storage)
