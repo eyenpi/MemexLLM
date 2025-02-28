@@ -1,0 +1,12 @@
+# Configure models to use
+model_list:
+  - model_name: gpt-4o
+    litellm_params:
+      model: openai/gpt-4o
+
+# Enable Langfuse logging
+litellm_settings:
+  callbacks: ["langfuse"]
+
+# Set default model
+default_model: gpt-4o 
