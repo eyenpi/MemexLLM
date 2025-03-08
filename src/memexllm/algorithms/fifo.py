@@ -33,7 +33,7 @@ class FIFOAlgorithm(BaseAlgorithm):
         Initialize the FIFO algorithm with specified capacity.
 
         Args:
-            max_messages (int, optional): Maximum number of messages to keep in a thread.
+            max_messages (int): Maximum number of messages to keep in a thread.
                 Defaults to 100. Must be greater than 0.
 
         Raises:

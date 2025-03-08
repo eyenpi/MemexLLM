@@ -115,10 +115,11 @@ class SQLiteSchema:
 
 
 class SQLiteStorage(BaseStorage):
-    """SQLite storage backend for threads.
+    """
+    SQLite storage backend for conversation threads.
 
-    This class provides a SQLite implementation of the BaseStorage interface.
-    It handles thread and message persistence using SQLite as the backend.
+    This storage backend persists threads and messages to a SQLite database file,
+    making it suitable for production use with moderate data volumes.
 
     Attributes:
         db_path (str): Path to the SQLite database file
@@ -128,16 +129,18 @@ class SQLiteStorage(BaseStorage):
     def __init__(
         self, db_path: str = "memexllm.db", max_messages: Optional[int] = None
     ):
-        """Initialize SQLite storage.
+        """
+        Initialize SQLite storage with database path.
 
         Args:
-            db_path: Path to SQLite database file. If None, uses in-memory database.
-            max_messages: Maximum number of messages to store per thread.
-                If None, all messages are stored.
+            db_path (str): Path to the SQLite database file. If the file doesn't
+                exist, it will be created. Defaults to "memexllm.db" in the
+                current directory.
+            max_messages (Optional[int]): Maximum number of messages to store per thread.
+                If None, store all messages.
 
         Raises:
-            ValidationError: If input parameters are invalid
-            DatabaseConnectionError: If database connection fails
+            ConnectionError: If the database connection cannot be established
         """
         # Validate input parameters
         if not db_path:

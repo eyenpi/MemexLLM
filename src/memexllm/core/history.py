@@ -131,29 +131,27 @@ class HistoryManager:
         name: Optional[str] = None,
     ) -> Message:
         """
-        Add a message to an existing thread.
-
-        This method will:
-        1. Store the full message history in storage
-        2. Apply the algorithm only for context management
-        3. Keep storage and algorithm concerns separate
+        Add a new message to a thread.
 
         Args:
             thread_id (str): ID of the thread to add the message to
             content (str): Content of the message
             role (MessageRole): Role of the message sender
-            metadata (Optional[Dict[str, Any]]): Optional metadata for the message
-            tool_calls (Optional[List[Any]]): Tool calls in the message
-            tool_call_id (Optional[str]): ID of the tool call this message responds to
-            function_call (Optional[Dict[str, Any]]): Function call in the message
-            name (Optional[str]): Name of the function or tool
+            metadata (Optional[Dict[str, Any]]): Optional metadata to associate with
+                the message
+            tool_calls (Optional[List[Any]]): Optional tool calls made in this message
+            tool_call_id (Optional[str]): Optional ID of the tool call this message
+                is responding to
+            function_call (Optional[Dict[str, Any]]): Optional function call details
+                if this message contains a function call
+            name (Optional[str]): Optional name field for function messages
 
         Returns:
-            Message: The created message
+            Message: The newly created message
 
         Raises:
+            ValidationError: If thread_id is empty or role is invalid
             ThreadNotFoundError: If the thread does not exist
-            ValidationError: If any of the required parameters are invalid
             StorageError: If there's an error saving the message
         """
         if not thread_id:
@@ -202,10 +200,10 @@ class HistoryManager:
 
     def get_messages(self, thread_id: str) -> List[Message]:
         """
-        Get all messages in a thread.
+        Get all messages for a thread.
 
         Args:
-            thread_id (str): ID of the thread
+            thread_id (str): ID of the thread to get messages for
 
         Returns:
             List[Message]: List of messages in the thread
@@ -233,7 +231,7 @@ class HistoryManager:
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> List[Thread]:
         """
-        List threads in the storage.
+        List threads with pagination.
 
         Args:
             limit (int): Maximum number of threads to return
@@ -260,13 +258,13 @@ class HistoryManager:
 
     def delete_thread(self, thread_id: str) -> bool:
         """
-        Delete a thread and all its messages.
+        Delete a thread.
 
         Args:
             thread_id (str): ID of the thread to delete
 
         Returns:
-            bool: True if the thread was deleted, False if it didn't exist
+            bool: True if deleted, False if thread not found
 
         Raises:
             ValidationError: If thread_id is empty
@@ -276,12 +274,7 @@ class HistoryManager:
             raise ValidationError("Thread ID cannot be empty")
 
         try:
-            result = self.storage.delete_thread(thread_id)
-            if result:
-                logger.debug(f"Deleted thread {thread_id}")
-            else:
-                logger.debug(f"Thread {thread_id} not found for deletion")
-            return result
+            return self.storage.delete_thread(thread_id)
         except Exception as e:
             logger.error(f"Failed to delete thread {thread_id}: {e}")
             raise StorageError(f"Failed to delete thread: {e}") from e

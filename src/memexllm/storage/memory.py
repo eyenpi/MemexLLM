@@ -23,7 +23,7 @@ class MemoryStorage(BaseStorage):
         Initialize an empty in-memory storage.
 
         Args:
-            max_messages: Maximum number of messages to store per thread.
+            max_messages (Optional[int]): Maximum number of messages to store per thread.
                 If None, store all messages.
         """
         super().__init__(max_messages=max_messages)
@@ -55,53 +55,51 @@ class MemoryStorage(BaseStorage):
         self, thread_id: str, message_limit: Optional[int] = None
     ) -> Optional[Thread]:
         """
-        Retrieve a thread by its ID.
+        Retrieve a thread by ID from memory.
 
         Args:
-            thread_id (str): The unique identifier of the thread to retrieve
+            thread_id (str): ID of the thread to retrieve
             message_limit (Optional[int]): Maximum number of most recent messages to return.
                 If None, return all stored messages.
 
         Returns:
-            Optional[Thread]: The thread if found, None otherwise
+            Optional[Thread]: Thread if found, None otherwise
         """
-        thread = self.threads.get(thread_id)
-        if not thread:
+        if thread_id not in self.threads:
             return None
 
-        # Create a copy to avoid modifying stored thread
-        thread_copy = deepcopy(thread)
+        # Create a copy to avoid modifying the original
+        thread = deepcopy(self.threads[thread_id])
 
-        # Apply message limit if set
-        if message_limit is not None and len(thread_copy.messages) > message_limit:
-            thread_copy.messages = thread_copy.messages[-message_limit:]
+        # Apply message limit if specified
+        if message_limit is not None and len(thread.messages) > message_limit:
+            thread.messages = thread.messages[-message_limit:]
 
-        return thread_copy
+        return thread
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> List[Thread]:
         """
-        List threads with pagination support.
+        List threads with pagination.
 
         Args:
-            limit (int, optional): Maximum number of threads to return. Defaults to 100.
-            offset (int, optional): Number of threads to skip. Defaults to 0.
+            limit (int): Maximum number of threads to return
+            offset (int): Number of threads to skip
 
         Returns:
-            List[Thread]: List of threads, ordered by their insertion order.
-                Returns an empty list if offset is greater than the number of threads.
+            List[Thread]: List of threads
         """
         threads = list(self.threads.values())
         return [deepcopy(t) for t in threads[offset : offset + limit]]
 
     def delete_thread(self, thread_id: str) -> bool:
         """
-        Delete a thread from storage.
+        Delete a thread from memory.
 
         Args:
-            thread_id (str): The unique identifier of the thread to delete
+            thread_id (str): ID of the thread to delete
 
         Returns:
-            bool: True if the thread was found and deleted, False if it didn't exist
+            bool: True if deleted, False if thread not found
         """
         if thread_id in self.threads:
             del self.threads[thread_id]
@@ -112,13 +110,14 @@ class MemoryStorage(BaseStorage):
         """
         Search for threads matching criteria.
 
+        This implementation supports basic metadata matching.
+
         Args:
-            query: Search criteria. Currently supports:
-                - metadata: Dict of metadata key-value pairs to match
-                - content: String to search for in message content
+            query (Dict[str, Any]): Search criteria as key-value pairs to match
+                against thread metadata
 
         Returns:
-            List of matching threads
+            List[Thread]: List of matching threads
         """
         results = []
 

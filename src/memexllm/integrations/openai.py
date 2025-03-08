@@ -306,84 +306,37 @@ def with_history(
     history_manager: Optional[HistoryManager] = None,
 ) -> Callable[[T], T]:
     """
-    Decorator that adds conversation history management to an OpenAI client.
+    Decorator to add conversation history management to an OpenAI client.
 
-    This decorator wraps an OpenAI client to automatically track and manage conversation
-    history. It supports both synchronous and asynchronous clients and handles thread
-    creation, message storage, and history management.
-
-    Tool calls are handled automatically. When you send a tool response message, the
-    history manager will automatically include the corresponding assistant message with
-    the tool call in the request to OpenAI. This means you only need to send the tool
-    response message, and the history manager will take care of the rest.
-
-    The decorator ensures that assistant messages with tool calls are immediately followed
-    by their tool response messages, as required by the OpenAI API. This is handled
-    transparently, so you don't need to worry about the order of messages.
-
-    Example with tool calls:
-    ```python
-    # First request with tools
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "What's the weather?"}],
-        tools=[...],
-        thread_id="my-thread"
-    )
-
-    # Get the tool call information
-    tool_call = response.choices[0].message.tool_calls[0]
-
-    # Process the tool call and get the result
-    tool_result = my_weather_function(tool_call.function.arguments)
-
-    # Send only the tool response - the history manager will automatically include
-    # the assistant's message with the tool call
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "tool",
-                "content": json.dumps(tool_result),
-                "tool_call_id": tool_call.id  # Use the actual tool call ID from the assistant's response
-            }
-        ],
-        thread_id="my-thread"
-    )
-    ```
+    This decorator adds a thread_id parameter to the chat.completions.create method,
+    which enables automatic conversation history management. When a thread_id is
+    provided, messages are stored and retrieved from the specified storage backend.
 
     Args:
-        storage (Optional[BaseStorage]): Storage backend for persisting conversation history.
+        storage (Optional[BaseStorage]): Storage backend for conversation history.
             Required if history_manager is not provided.
         algorithm (Optional[BaseAlgorithm]): Algorithm for managing conversation history.
-            Optional, used for features like context window management.
-        history_manager (Optional[HistoryManager]): Existing HistoryManager instance.
+            If None, all messages are included in the context.
+        history_manager (Optional[HistoryManager]): Pre-configured history manager.
             If provided, storage and algorithm parameters are ignored.
 
     Returns:
-        Callable: A decorator function that wraps an OpenAI client
+        Callable[[T], T]: Decorator function that adds history management to an OpenAI client
 
     Raises:
-        ConfigurationError: If neither storage nor history_manager is provided
+        ValidationError: If neither storage nor history_manager is provided
 
     Example:
         ```python
-        from openai import OpenAI
-        from memexllm.storage import SQLiteStorage
-        from memexllm.algorithms import FIFOAlgorithm
+        # Create a client with history management
+        storage = MemoryStorage()
+        client = with_history(storage=storage)(OpenAI())
 
-        # Create client with history management
-        client = OpenAI()
-        storage = SQLiteStorage("chat_history.db")
-        algorithm = FIFOAlgorithm(max_messages=50)
-
-        client = with_history(storage=storage, algorithm=algorithm)(client)
-
-        # Use client with automatic history tracking
+        # Use the client with a thread_id
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": "Hello!"}],
-            thread_id="my-thread"  # Optional, will be created if not provided
+            thread_id="thread_123"
         )
         ```
     """
