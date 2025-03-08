@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 from typing import (
     Any,
@@ -43,6 +44,15 @@ from ..core.models import (
     ToolCallContent,
 )
 from ..storage.base import BaseStorage
+from ..utils.exceptions import (
+    AuthenticationError,
+    OpenAIAPIError,
+    RateLimitError,
+    ValidationError,
+)
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Type aliases for better readability
 T = TypeVar("T", bound=Union[OpenAI, AsyncOpenAI])
@@ -60,95 +70,106 @@ def _convert_to_message(msg: Union[Dict[str, Any], ChatCompletionMessage]) -> Me
         Message: Converted internal message format
 
     Raises:
-        ValueError: If the message role is invalid
+        ValidationError: If the message format is invalid or contains invalid data
     """
-    if isinstance(msg, dict):
-        role = str(msg.get("role", ""))
-        if role not in ("system", "user", "assistant", "tool", "function", "developer"):
-            raise ValueError(f"Invalid role: {role}")
-
-        # Extract content
-        content = msg.get("content", "")
-
-        # Handle tool calls
-        tool_calls = None
-        if "tool_calls" in msg and msg["tool_calls"]:
-            tool_calls = [
-                ToolCallContent(
-                    id=tc.get("id", ""),
-                    type=tc.get("type", "function"),
-                    function=tc.get("function", {}),
+    try:
+        if isinstance(msg, dict):
+            role = str(msg.get("role", ""))
+            if role not in (
+                "system",
+                "user",
+                "assistant",
+                "tool",
+                "function",
+                "developer",
+            ):
+                raise ValidationError(
+                    f"Invalid message role: '{role}'. Must be one of: system, user, assistant, tool, function, developer"
                 )
-                for tc in msg["tool_calls"]
-            ]
 
-        # Handle multimodal content
-        if isinstance(content, list):
-            processed_content: List[MessageContent] = []
-            for item in content:
-                if item.get("type") == "text":
-                    processed_content.append(TextContent(text=item.get("text", "")))
-                elif item.get("type") == "image_url":
-                    processed_content.append(
-                        ImageContent(
-                            url=item.get("image_url", {}).get("url", ""),
-                            detail=item.get("image_url", {}).get("detail"),
-                        )
+            # Extract content
+            content = msg.get("content", "")
+
+            # Handle tool calls
+            tool_calls = None
+            if "tool_calls" in msg and msg["tool_calls"]:
+                tool_calls = [
+                    ToolCallContent(
+                        id=tc.get("id", ""),
+                        type=tc.get("type", "function"),
+                        function=tc.get("function", {}),
                     )
-            content = processed_content
+                    for tc in msg["tool_calls"]
+                ]
 
-        return Message(
-            role=cast(MessageRole, role),
-            content=content,
-            tool_calls=tool_calls,
-            tool_call_id=msg.get("tool_call_id"),
-            function_call=msg.get("function_call"),
-            name=msg.get("name"),
-        )
-    else:
-        role = str(msg.role)
-        if role not in ("system", "user", "assistant", "tool", "function", "developer"):
-            raise ValueError(f"Invalid role: {role}")
-
-        # Extract content
-        content = msg.content or ""
-
-        # Handle tool calls
-        tool_calls = None
-        if hasattr(msg, "tool_calls") and msg.tool_calls:
-            tool_calls = [
-                ToolCallContent(
-                    id=tc.id,
-                    type=tc.type,
-                    function=cast(Dict[str, Any], tc.function),
-                )
-                for tc in msg.tool_calls
-            ]
-
-        # Handle multimodal content (if content is a list of content parts)
-        if isinstance(content, list):
-            processed_content_obj: List[MessageContent] = []
-            for item in content:
-                if hasattr(item, "type"):
-                    if item.type == "text":
-                        processed_content_obj.append(TextContent(text=item.text))
-                    elif item.type == "image_url":
-                        processed_content_obj.append(
+            # Handle multimodal content
+            if isinstance(content, list):
+                processed_content: List[MessageContent] = []
+                for item in content:
+                    if item.get("type") == "text":
+                        processed_content.append(TextContent(text=item.get("text", "")))
+                    elif item.get("type") == "image_url":
+                        processed_content.append(
                             ImageContent(
-                                url=item.image_url.url,
-                                detail=getattr(item.image_url, "detail", None),
+                                url=item.get("image_url", {}).get("url", ""),
+                                detail=item.get("image_url", {}).get("detail"),
                             )
                         )
-            content = processed_content_obj
+                    else:
+                        logger.warning(f"Unknown content type: {item.get('type')}")
+                content = processed_content
 
-        return Message(
-            role=cast(MessageRole, role),
-            content=content,
-            tool_calls=tool_calls,
-            tool_call_id=getattr(msg, "tool_call_id", None),
-            function_call=getattr(msg, "function_call", None),
-            name=getattr(msg, "name", None),
-        )
+            return Message(
+                role=cast(MessageRole, role),
+                content=content,
+                tool_calls=tool_calls,
+                tool_call_id=msg.get("tool_call_id"),
+                function_call=msg.get("function_call"),
+                name=msg.get("name"),
+            )
+        else:
+            # Handle ChatCompletionMessage object
+            role = msg.role
+            if role not in (
+                "system",
+                "user",
+                "assistant",
+                "tool",
+                "function",
+                "developer",
+            ):
+                raise ValidationError(
+                    f"Invalid message role: '{role}'. Must be one of: system, user, assistant, tool, function, developer"
+                )
+
+            # Extract content
+            content = msg.content
+
+            # Handle tool calls
+            tool_calls = None
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                tool_calls = [
+                    ToolCallContent(
+                        id=tc.id,
+                        type=tc.type,
+                        function=cast(Dict[str, Any], tc.function),
+                    )
+                    for tc in msg.tool_calls
+                ]
+
+            return Message(
+                role=cast(MessageRole, role),
+                content=content,
+                tool_calls=tool_calls,
+                tool_call_id=getattr(msg, "tool_call_id", None),
+                function_call=getattr(msg, "function_call", None),
+                name=getattr(msg, "name", None),
+            )
+    except Exception as e:
+        if isinstance(e, ValidationError):
+            raise
+        logger.error(f"Error converting OpenAI message format: {e}")
+        raise ValidationError(f"Failed to convert OpenAI message format: {e}") from e
 
 
 def _convert_to_openai_messages(
@@ -343,7 +364,7 @@ def with_history(
         Callable: A decorator function that wraps an OpenAI client
 
     Raises:
-        ValueError: If neither history_manager nor storage is provided
+        ConfigurationError: If neither storage nor history_manager is provided
 
     Example:
         ```python
@@ -366,13 +387,20 @@ def with_history(
         )
         ```
     """
+    from ..utils.exceptions import ConfigurationError
+
+    if not storage and not history_manager:
+        raise ConfigurationError(
+            "Either storage or history_manager must be provided to with_history decorator"
+        )
+
+    # Create history manager if not provided
+    manager = history_manager or HistoryManager(
+        storage=cast(BaseStorage, storage), algorithm=algorithm
+    )
 
     def decorator(client: T) -> T:
-        nonlocal history_manager
-        if history_manager is None:
-            if storage is None:
-                raise ValueError("Either history_manager or storage must be provided")
-            history_manager = HistoryManager(storage=storage, algorithm=algorithm)
+        nonlocal manager
 
         # Store original methods
         original_chat_completions_create = client.chat.completions.create
@@ -400,7 +428,7 @@ def with_history(
             Returns:
                 List[ChatCompletionMessageParam]: Combined and formatted messages
             """
-            thread = history_manager.get_thread(thread_id)
+            thread = manager.get_thread(thread_id)
             converted_messages = [_convert_to_message(msg) for msg in new_messages]
 
             if not thread:
@@ -529,7 +557,7 @@ def with_history(
             """
             # Create or get thread
             if not thread_id:
-                thread = history_manager.create_thread()
+                thread = manager.create_thread()
                 thread_id = thread.id
 
             # Get messages and prepare them with history
@@ -549,7 +577,7 @@ def with_history(
                 content_for_storage = _prepare_content_for_storage(
                     converted_msg.content
                 )
-                history_manager.add_message(
+                manager.add_message(
                     thread_id=thread_id,
                     content=content_for_storage,
                     role=converted_msg.role,
@@ -568,7 +596,7 @@ def with_history(
                         content_for_storage = _prepare_content_for_storage(
                             converted_msg.content
                         )
-                        history_manager.add_message(
+                        manager.add_message(
                             thread_id=thread_id,
                             content=content_for_storage,
                             role=converted_msg.role,
@@ -606,7 +634,7 @@ def with_history(
             """
             # Create or get thread
             if not thread_id:
-                thread = history_manager.create_thread()
+                thread = manager.create_thread()
                 thread_id = thread.id
 
             # Get messages and prepare them with history
@@ -626,7 +654,7 @@ def with_history(
                 content_for_storage = _prepare_content_for_storage(
                     converted_msg.content
                 )
-                history_manager.add_message(
+                manager.add_message(
                     thread_id=thread_id,
                     content=content_for_storage,
                     role=converted_msg.role,
@@ -645,7 +673,7 @@ def with_history(
                         content_for_storage = _prepare_content_for_storage(
                             converted_msg.content
                         )
-                        history_manager.add_message(
+                        manager.add_message(
                             thread_id=thread_id,
                             content=content_for_storage,
                             role=converted_msg.role,
