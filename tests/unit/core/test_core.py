@@ -5,6 +5,7 @@ import pytest
 from memexllm.algorithms import FIFOAlgorithm
 from memexllm.core import HistoryManager, Message, MessageRole, Thread
 from memexllm.storage import MemoryStorage
+from memexllm.utils.exceptions import ThreadNotFoundError
 
 
 def test_history_manager_creation() -> None:
@@ -116,11 +117,11 @@ def test_thread_property_methods() -> None:
 
 
 def test_get_messages_thread_not_found() -> None:
-    """Test that get_messages raises ValueError when thread is not found"""
+    """Test that get_messages raises ThreadNotFoundError when thread is not found"""
     storage = MemoryStorage()
     manager = HistoryManager(storage)
 
-    with pytest.raises(ValueError, match="Thread with ID nonexistent not found"):
+    with pytest.raises(ThreadNotFoundError, match="Thread not found: nonexistent"):
         manager.get_messages("nonexistent")
 
 
@@ -155,8 +156,9 @@ def test_delete_thread() -> None:
     thread = manager.create_thread()
     assert manager.delete_thread(thread.id) is True
 
-    # Verify thread is gone
-    assert manager.get_thread(thread.id) is None
+    # Verify thread is gone by checking it raises ThreadNotFoundError
+    with pytest.raises(ThreadNotFoundError):
+        manager.get_thread(thread.id)
 
     # Try to delete nonexistent thread
     assert manager.delete_thread("nonexistent") is False

@@ -1,8 +1,18 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 from ..algorithms.base import BaseAlgorithm
 from ..core.models import Message, MessageRole, Thread
 from ..storage.base import BaseStorage
+from ..utils.exceptions import (
+    ResourceNotFoundError,
+    StorageError,
+    ThreadNotFoundError,
+    ValidationError,
+)
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 
 class HistoryManager:
@@ -30,9 +40,18 @@ class HistoryManager:
             algorithm (Optional[BaseAlgorithm]): History management algorithm for
                 controlling conversation history. If None, messages are simply appended
                 to threads.
+
+        Raises:
+            ValidationError: If storage is None
         """
+        if storage is None:
+            raise ValidationError("Storage cannot be None")
+
         self.storage = storage
         self.algorithm = algorithm
+        logger.debug(
+            f"Initialized HistoryManager with algorithm: {algorithm.__class__.__name__ if algorithm else None}"
+        )
 
     def create_thread(self, metadata: Optional[Dict[str, Any]] = None) -> Thread:
         """
@@ -44,12 +63,20 @@ class HistoryManager:
 
         Returns:
             Thread: The newly created thread instance
-        """
-        thread = Thread(metadata=metadata or {})
-        self.storage.save_thread(thread)
-        return thread
 
-    def get_thread(self, thread_id: str) -> Optional[Thread]:
+        Raises:
+            StorageError: If there's an error saving the thread
+        """
+        try:
+            thread = Thread(metadata=metadata or {})
+            self.storage.save_thread(thread)
+            logger.debug(f"Created new thread with ID: {thread.id}")
+            return thread
+        except Exception as e:
+            logger.error(f"Failed to create thread: {e}")
+            raise StorageError(f"Failed to create thread: {e}") from e
+
+    def get_thread(self, thread_id: str) -> Thread:
         """
         Retrieve a thread by its ID.
 
@@ -60,22 +87,40 @@ class HistoryManager:
             thread_id (str): The unique identifier of the thread
 
         Returns:
-            Optional[Thread]: The thread if found, None otherwise
+            Thread: The thread if found
+
+        Raises:
+            ValidationError: If thread_id is empty
+            ThreadNotFoundError: If the thread does not exist
+            StorageError: If there's an error retrieving the thread
         """
-        # Get the effective message limit from algorithm
-        message_limit = self.algorithm.max_messages if self.algorithm else None
+        if not thread_id:
+            raise ValidationError("Thread ID cannot be empty")
 
-        # Get thread with optimized message limit
-        thread = self.storage.get_thread(thread_id, message_limit=message_limit)
-        if not thread:
-            return None
+        try:
+            # Get the effective message limit from algorithm
+            message_limit = self.algorithm.max_messages if self.algorithm else None
 
-        # Let algorithm process messages if configured
-        if self.algorithm:
-            messages = self.algorithm.get_message_window(thread.messages)
-            thread.messages = messages
+            # Get thread with optimized message limit
+            thread = self.storage.get_thread(thread_id, message_limit=message_limit)
+            if not thread:
+                logger.error(f"Thread not found: {thread_id}")
+                raise ThreadNotFoundError(f"Thread not found: {thread_id}")
 
-        return thread
+            # Let algorithm process messages if configured
+            if self.algorithm:
+                messages = self.algorithm.get_message_window(thread.messages)
+                thread.messages = messages
+
+            logger.debug(
+                f"Retrieved thread {thread_id} with {len(thread.messages)} messages"
+            )
+            return thread
+        except ThreadNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to get thread {thread_id}: {e}")
+            raise StorageError(f"Failed to get thread: {e}") from e
 
     def add_message(
         self,
@@ -89,103 +134,150 @@ class HistoryManager:
         name: Optional[str] = None,
     ) -> Message:
         """
-        Add a message to an existing thread.
-
-        This method will:
-        1. Store the full message history in storage
-        2. Apply the algorithm only for context management
-        3. Keep storage and algorithm concerns separate
+        Add a new message to a thread.
 
         Args:
             thread_id (str): ID of the thread to add the message to
-            content (str): The message content
-            role (MessageRole): Role of the message sender (e.g., user, assistant)
+            content (str): Content of the message
+            role (MessageRole): Role of the message sender
             metadata (Optional[Dict[str, Any]]): Optional metadata to associate with
                 the message
-            tool_calls (Optional[List[Any]]): Tool calls made in this message
-            tool_call_id (Optional[str]): ID of the tool call this message is responding to
-            function_call (Optional[Dict[str, Any]]): Function call details if this message contains a function call
-            name (Optional[str]): Name field for function messages
+            tool_calls (Optional[List[Any]]): Optional tool calls made in this message
+            tool_call_id (Optional[str]): Optional ID of the tool call this message
+                is responding to
+            function_call (Optional[Dict[str, Any]]): Optional function call details
+                if this message contains a function call
+            name (Optional[str]): Optional name field for function messages
 
         Returns:
-            Message: The newly created message instance
+            Message: The newly created message
 
         Raises:
-            ValueError: If the specified thread_id does not exist
+            ValidationError: If thread_id is empty or role is invalid
+            ThreadNotFoundError: If the thread does not exist
+            StorageError: If there's an error saving the message
         """
-        # Get full thread history
-        thread = self.storage.get_thread(thread_id)
-        if not thread:
-            raise ValueError(f"Thread with ID {thread_id} not found")
+        if not thread_id:
+            raise ValidationError("Thread ID cannot be empty")
 
-        # Create the new message
-        message = Message(
-            content=content,
-            role=role,
-            metadata=metadata or {},
-            tool_calls=tool_calls,
-            tool_call_id=tool_call_id,
-            function_call=function_call,
-            name=name,
-        )
+        if not isinstance(content, str) and content is not None:
+            raise ValidationError("Content must be a string or None")
 
-        # Add message to storage (this will handle storage's max_messages limit)
-        thread.add_message(message)
-        self.storage.save_thread(thread)
+        if role not in ("system", "user", "assistant", "tool", "function", "developer"):
+            raise ValidationError(f"Invalid role: {role}")
 
-        # If there's an algorithm, apply it to a copy for context management
-        if self.algorithm:
-            context_thread = Thread(id=thread.id, messages=thread.messages.copy())
-            self.algorithm.process_thread(context_thread, message)
+        try:
+            # Get the thread
+            thread = self.storage.get_thread(thread_id)
+            if not thread:
+                logger.error(f"Thread not found: {thread_id}")
+                raise ThreadNotFoundError(f"Thread not found: {thread_id}")
 
-        return message
+            # Create the message
+            message = Message(
+                role=role,
+                content=content,
+                metadata=metadata or {},
+                tool_calls=tool_calls,
+                tool_call_id=tool_call_id,
+                function_call=function_call,
+                name=name,
+            )
+
+            # Add message to thread
+            thread.messages.append(message)
+            thread.updated_at = message.created_at
+
+            # Save thread with new message
+            self.storage.save_thread(thread)
+            logger.debug(f"Added {role} message to thread {thread_id}")
+
+            return message
+        except ThreadNotFoundError:
+            raise
+        except ValidationError:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to add message to thread {thread_id}: {e}")
+            raise StorageError(f"Failed to add message to thread: {e}") from e
 
     def get_messages(self, thread_id: str) -> List[Message]:
         """
-        Get messages from a thread.
-
-        If an algorithm is configured, it will determine how many messages to return
-        from the thread's history. Otherwise, all stored messages are returned.
+        Get all messages for a thread.
 
         Args:
-            thread_id (str): ID of the thread to retrieve messages from
+            thread_id (str): ID of the thread to get messages for
 
         Returns:
             List[Message]: List of messages in the thread
 
         Raises:
-            ValueError: If the specified thread_id does not exist
+            ThreadNotFoundError: If the thread does not exist
+            ValidationError: If thread_id is empty
+            StorageError: If there's an error retrieving the messages
         """
-        thread = self.get_thread(thread_id)
-        if not thread:
-            raise ValueError(f"Thread with ID {thread_id} not found")
-        return thread.messages
+        if not thread_id:
+            raise ValidationError("Thread ID cannot be empty")
+
+        try:
+            thread = self.storage.get_thread(thread_id)
+            if not thread:
+                logger.error(f"Thread not found: {thread_id}")
+                raise ThreadNotFoundError(f"Thread not found: {thread_id}")
+
+            return thread.messages
+        except ThreadNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Failed to get messages for thread {thread_id}: {e}")
+            raise StorageError(f"Failed to get messages: {e}") from e
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> List[Thread]:
         """
-        List threads with pagination support.
+        List threads with pagination.
 
         Args:
-            limit (int): Maximum number of threads to return (default: 100)
-            offset (int): Number of threads to skip (default: 0)
+            limit (int): Maximum number of threads to return
+            offset (int): Number of threads to skip
 
         Returns:
-            List[Thread]: List of thread instances
+            List[Thread]: List of threads
+
+        Raises:
+            ValidationError: If limit or offset are invalid
+            StorageError: If there's an error listing threads
         """
-        threads = self.storage.list_threads(limit, offset)
-        if self.algorithm:
-            for thread in threads:
-                thread.messages = self.algorithm.get_message_window(thread.messages)
-        return threads
+        if limit <= 0:
+            raise ValidationError("Limit must be a positive integer")
+
+        if offset < 0:
+            raise ValidationError("Offset must be a non-negative integer")
+
+        try:
+            return self.storage.list_threads(limit=limit, offset=offset)
+        except Exception as e:
+            logger.error(f"Failed to list threads: {e}")
+            raise StorageError(f"Failed to list threads: {e}") from e
 
     def delete_thread(self, thread_id: str) -> bool:
         """
-        Delete a thread and all its messages.
+        Delete a thread.
 
         Args:
             thread_id (str): ID of the thread to delete
 
         Returns:
-            bool: True if the thread was successfully deleted, False otherwise
+            bool: True if deleted, False if thread not found
+
+        Raises:
+            ValidationError: If thread_id is empty
+            StorageError: If there's an error deleting the thread
         """
-        return self.storage.delete_thread(thread_id)
+        if not thread_id:
+            raise ValidationError("Thread ID cannot be empty")
+
+        try:
+            return self.storage.delete_thread(thread_id)
+        except Exception as e:
+            logger.error(f"Failed to delete thread {thread_id}: {e}")
+            raise StorageError(f"Failed to delete thread: {e}") from e

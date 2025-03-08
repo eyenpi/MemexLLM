@@ -15,7 +15,7 @@ class BaseAlgorithm(ABC):
         Initialize algorithm with optional message limit.
 
         Args:
-            max_messages: Maximum number of messages to include in context window.
+            max_messages (Optional[int]): Maximum number of messages to include in context window.
                 If None, include all messages.
         """
         self.max_messages = max_messages
@@ -29,8 +29,8 @@ class BaseAlgorithm(ABC):
         (e.g., truncate old messages) and add the new message
 
         Args:
-            thread: The conversation thread
-            new_message: The new message being added
+            thread (Thread): The conversation thread
+            new_message (Message): The new message being added
         """
         pass
 
@@ -43,9 +43,9 @@ class BaseAlgorithm(ABC):
         be included in the context window for the LLM.
 
         Args:
-            messages: Complete list of messages in the thread
+            messages (List[Message]): Complete list of messages in the thread
 
         Returns:
-            List of messages to include in the context window
+            List[Message]: List of messages to include in the context window
         """
         pass

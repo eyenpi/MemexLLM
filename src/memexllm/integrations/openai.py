@@ -1,3 +1,4 @@
+import logging
 from functools import wraps
 from typing import (
     Any,
@@ -43,6 +44,15 @@ from ..core.models import (
     ToolCallContent,
 )
 from ..storage.base import BaseStorage
+from ..utils.exceptions import (
+    AuthenticationError,
+    OpenAIAPIError,
+    RateLimitError,
+    ValidationError,
+)
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Type aliases for better readability
 T = TypeVar("T", bound=Union[OpenAI, AsyncOpenAI])
@@ -60,95 +70,106 @@ def _convert_to_message(msg: Union[Dict[str, Any], ChatCompletionMessage]) -> Me
         Message: Converted internal message format
 
     Raises:
-        ValueError: If the message role is invalid
+        ValidationError: If the message format is invalid or contains invalid data
     """
-    if isinstance(msg, dict):
-        role = str(msg.get("role", ""))
-        if role not in ("system", "user", "assistant", "tool", "function", "developer"):
-            raise ValueError(f"Invalid role: {role}")
-
-        # Extract content
-        content = msg.get("content", "")
-
-        # Handle tool calls
-        tool_calls = None
-        if "tool_calls" in msg and msg["tool_calls"]:
-            tool_calls = [
-                ToolCallContent(
-                    id=tc.get("id", ""),
-                    type=tc.get("type", "function"),
-                    function=tc.get("function", {}),
+    try:
+        if isinstance(msg, dict):
+            role = str(msg.get("role", ""))
+            if role not in (
+                "system",
+                "user",
+                "assistant",
+                "tool",
+                "function",
+                "developer",
+            ):
+                raise ValidationError(
+                    f"Invalid message role: '{role}'. Must be one of: system, user, assistant, tool, function, developer"
                 )
-                for tc in msg["tool_calls"]
-            ]
 
-        # Handle multimodal content
-        if isinstance(content, list):
-            processed_content: List[MessageContent] = []
-            for item in content:
-                if item.get("type") == "text":
-                    processed_content.append(TextContent(text=item.get("text", "")))
-                elif item.get("type") == "image_url":
-                    processed_content.append(
-                        ImageContent(
-                            url=item.get("image_url", {}).get("url", ""),
-                            detail=item.get("image_url", {}).get("detail"),
-                        )
+            # Extract content
+            content = msg.get("content", "")
+
+            # Handle tool calls
+            tool_calls = None
+            if "tool_calls" in msg and msg["tool_calls"]:
+                tool_calls = [
+                    ToolCallContent(
+                        id=tc.get("id", ""),
+                        type=tc.get("type", "function"),
+                        function=tc.get("function", {}),
                     )
-            content = processed_content
+                    for tc in msg["tool_calls"]
+                ]
 
-        return Message(
-            role=cast(MessageRole, role),
-            content=content,
-            tool_calls=tool_calls,
-            tool_call_id=msg.get("tool_call_id"),
-            function_call=msg.get("function_call"),
-            name=msg.get("name"),
-        )
-    else:
-        role = str(msg.role)
-        if role not in ("system", "user", "assistant", "tool", "function", "developer"):
-            raise ValueError(f"Invalid role: {role}")
-
-        # Extract content
-        content = msg.content or ""
-
-        # Handle tool calls
-        tool_calls = None
-        if hasattr(msg, "tool_calls") and msg.tool_calls:
-            tool_calls = [
-                ToolCallContent(
-                    id=tc.id,
-                    type=tc.type,
-                    function=cast(Dict[str, Any], tc.function),
-                )
-                for tc in msg.tool_calls
-            ]
-
-        # Handle multimodal content (if content is a list of content parts)
-        if isinstance(content, list):
-            processed_content_obj: List[MessageContent] = []
-            for item in content:
-                if hasattr(item, "type"):
-                    if item.type == "text":
-                        processed_content_obj.append(TextContent(text=item.text))
-                    elif item.type == "image_url":
-                        processed_content_obj.append(
+            # Handle multimodal content
+            if isinstance(content, list):
+                processed_content: List[MessageContent] = []
+                for item in content:
+                    if item.get("type") == "text":
+                        processed_content.append(TextContent(text=item.get("text", "")))
+                    elif item.get("type") == "image_url":
+                        processed_content.append(
                             ImageContent(
-                                url=item.image_url.url,
-                                detail=getattr(item.image_url, "detail", None),
+                                url=item.get("image_url", {}).get("url", ""),
+                                detail=item.get("image_url", {}).get("detail"),
                             )
                         )
-            content = processed_content_obj
+                    else:
+                        logger.warning(f"Unknown content type: {item.get('type')}")
+                content = processed_content
 
-        return Message(
-            role=cast(MessageRole, role),
-            content=content,
-            tool_calls=tool_calls,
-            tool_call_id=getattr(msg, "tool_call_id", None),
-            function_call=getattr(msg, "function_call", None),
-            name=getattr(msg, "name", None),
-        )
+            return Message(
+                role=cast(MessageRole, role),
+                content=content,
+                tool_calls=tool_calls,
+                tool_call_id=msg.get("tool_call_id"),
+                function_call=msg.get("function_call"),
+                name=msg.get("name"),
+            )
+        else:
+            # Handle ChatCompletionMessage object
+            role = msg.role
+            if role not in (
+                "system",
+                "user",
+                "assistant",
+                "tool",
+                "function",
+                "developer",
+            ):
+                raise ValidationError(
+                    f"Invalid message role: '{role}'. Must be one of: system, user, assistant, tool, function, developer"
+                )
+
+            # Extract content
+            content = msg.content
+
+            # Handle tool calls
+            tool_calls = None
+            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                tool_calls = [
+                    ToolCallContent(
+                        id=tc.id,
+                        type=tc.type,
+                        function=cast(Dict[str, Any], tc.function),
+                    )
+                    for tc in msg.tool_calls
+                ]
+
+            return Message(
+                role=cast(MessageRole, role),
+                content=content,
+                tool_calls=tool_calls,
+                tool_call_id=getattr(msg, "tool_call_id", None),
+                function_call=getattr(msg, "function_call", None),
+                name=getattr(msg, "name", None),
+            )
+    except Exception as e:
+        if isinstance(e, ValidationError):
+            raise
+        logger.error(f"Error converting OpenAI message format: {e}")
+        raise ValidationError(f"Failed to convert OpenAI message format: {e}") from e
 
 
 def _convert_to_openai_messages(
@@ -285,94 +306,54 @@ def with_history(
     history_manager: Optional[HistoryManager] = None,
 ) -> Callable[[T], T]:
     """
-    Decorator that adds conversation history management to an OpenAI client.
+    Decorator to add conversation history management to an OpenAI client.
 
-    This decorator wraps an OpenAI client to automatically track and manage conversation
-    history. It supports both synchronous and asynchronous clients and handles thread
-    creation, message storage, and history management.
-
-    Tool calls are handled automatically. When you send a tool response message, the
-    history manager will automatically include the corresponding assistant message with
-    the tool call in the request to OpenAI. This means you only need to send the tool
-    response message, and the history manager will take care of the rest.
-
-    The decorator ensures that assistant messages with tool calls are immediately followed
-    by their tool response messages, as required by the OpenAI API. This is handled
-    transparently, so you don't need to worry about the order of messages.
-
-    Example with tool calls:
-    ```python
-    # First request with tools
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "What's the weather?"}],
-        tools=[...],
-        thread_id="my-thread"
-    )
-
-    # Get the tool call information
-    tool_call = response.choices[0].message.tool_calls[0]
-
-    # Process the tool call and get the result
-    tool_result = my_weather_function(tool_call.function.arguments)
-
-    # Send only the tool response - the history manager will automatically include
-    # the assistant's message with the tool call
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "tool",
-                "content": json.dumps(tool_result),
-                "tool_call_id": tool_call.id  # Use the actual tool call ID from the assistant's response
-            }
-        ],
-        thread_id="my-thread"
-    )
-    ```
+    This decorator adds a thread_id parameter to the chat.completions.create method,
+    which enables automatic conversation history management. When a thread_id is
+    provided, messages are stored and retrieved from the specified storage backend.
 
     Args:
-        storage (Optional[BaseStorage]): Storage backend for persisting conversation history.
+        storage (Optional[BaseStorage]): Storage backend for conversation history.
             Required if history_manager is not provided.
         algorithm (Optional[BaseAlgorithm]): Algorithm for managing conversation history.
-            Optional, used for features like context window management.
-        history_manager (Optional[HistoryManager]): Existing HistoryManager instance.
+            If None, all messages are included in the context.
+        history_manager (Optional[HistoryManager]): Pre-configured history manager.
             If provided, storage and algorithm parameters are ignored.
 
     Returns:
-        Callable: A decorator function that wraps an OpenAI client
+        Callable[[T], T]: Decorator function that adds history management to an OpenAI client
 
     Raises:
-        ValueError: If neither history_manager nor storage is provided
+        ValidationError: If neither storage nor history_manager is provided
 
     Example:
         ```python
-        from openai import OpenAI
-        from memexllm.storage import SQLiteStorage
-        from memexllm.algorithms import FIFOAlgorithm
+        # Create a client with history management
+        storage = MemoryStorage()
+        client = with_history(storage=storage)(OpenAI())
 
-        # Create client with history management
-        client = OpenAI()
-        storage = SQLiteStorage("chat_history.db")
-        algorithm = FIFOAlgorithm(max_messages=50)
-
-        client = with_history(storage=storage, algorithm=algorithm)(client)
-
-        # Use client with automatic history tracking
+        # Use the client with a thread_id
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": "Hello!"}],
-            thread_id="my-thread"  # Optional, will be created if not provided
+            thread_id="thread_123"
         )
         ```
     """
+    from ..utils.exceptions import ConfigurationError
+
+    if not storage and not history_manager:
+        raise ConfigurationError(
+            "Either storage or history_manager must be provided to with_history decorator"
+        )
+
+    # Create history manager if not provided
+    manager = history_manager or HistoryManager(
+        storage=cast(BaseStorage, storage), algorithm=algorithm
+    )
 
     def decorator(client: T) -> T:
-        nonlocal history_manager
-        if history_manager is None:
-            if storage is None:
-                raise ValueError("Either history_manager or storage must be provided")
-            history_manager = HistoryManager(storage=storage, algorithm=algorithm)
+        nonlocal manager
 
         # Store original methods
         original_chat_completions_create = client.chat.completions.create
@@ -400,7 +381,7 @@ def with_history(
             Returns:
                 List[ChatCompletionMessageParam]: Combined and formatted messages
             """
-            thread = history_manager.get_thread(thread_id)
+            thread = manager.get_thread(thread_id)
             converted_messages = [_convert_to_message(msg) for msg in new_messages]
 
             if not thread:
@@ -529,7 +510,7 @@ def with_history(
             """
             # Create or get thread
             if not thread_id:
-                thread = history_manager.create_thread()
+                thread = manager.create_thread()
                 thread_id = thread.id
 
             # Get messages and prepare them with history
@@ -549,7 +530,7 @@ def with_history(
                 content_for_storage = _prepare_content_for_storage(
                     converted_msg.content
                 )
-                history_manager.add_message(
+                manager.add_message(
                     thread_id=thread_id,
                     content=content_for_storage,
                     role=converted_msg.role,
@@ -568,7 +549,7 @@ def with_history(
                         content_for_storage = _prepare_content_for_storage(
                             converted_msg.content
                         )
-                        history_manager.add_message(
+                        manager.add_message(
                             thread_id=thread_id,
                             content=content_for_storage,
                             role=converted_msg.role,
@@ -606,7 +587,7 @@ def with_history(
             """
             # Create or get thread
             if not thread_id:
-                thread = history_manager.create_thread()
+                thread = manager.create_thread()
                 thread_id = thread.id
 
             # Get messages and prepare them with history
@@ -626,7 +607,7 @@ def with_history(
                 content_for_storage = _prepare_content_for_storage(
                     converted_msg.content
                 )
-                history_manager.add_message(
+                manager.add_message(
                     thread_id=thread_id,
                     content=content_for_storage,
                     role=converted_msg.role,
@@ -645,7 +626,7 @@ def with_history(
                         content_for_storage = _prepare_content_for_storage(
                             converted_msg.content
                         )
-                        history_manager.add_message(
+                        manager.add_message(
                             thread_id=thread_id,
                             content=content_for_storage,
                             role=converted_msg.role,

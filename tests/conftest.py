@@ -1,27 +1,29 @@
-from typing import List, cast
+"""
+Main conftest.py file that imports fixtures from other conftest files.
+This allows tests to access fixtures from any conftest.py file.
+"""
 
+import os
+import tempfile
+from typing import Generator
+
+# Add any global fixtures here
 import pytest
 
-from memexllm.core import Message, MessageRole, Thread
+# Import fixtures from unit tests
+from tests.unit.conftest import sample_messages, sample_thread
+
+# Import fixtures from integration tests if needed
+# Uncomment if needed:
+# from tests.integration.conftest import api_keys, integration_config
+
+# Import fixtures from performance tests if needed
+# Uncomment if needed:
+# from tests.performance.conftest import performance_config, timer, benchmark
 
 
-@pytest.fixture()  # type: ignore
-def sample_thread() -> Thread:
-    return Thread(
-        id="test_thread",
-        metadata={"user_id": "test_user"},
-        messages=[
-            Message(role=cast(MessageRole, "user"), content="Hello"),
-            Message(role=cast(MessageRole, "assistant"), content="Hi there"),
-        ],
-    )
-
-
-@pytest.fixture()  # type: ignore
-def sample_messages() -> List[Message]:
-    return [
-        Message(role=cast(MessageRole, "user"), content="Hello"),
-        Message(role=cast(MessageRole, "assistant"), content="Hi there"),
-        Message(role=cast(MessageRole, "user"), content="How are you?"),
-        Message(role=cast(MessageRole, "assistant"), content="I'm doing well!"),
-    ]
+@pytest.fixture(scope="session")  # type: ignore
+def temp_dir() -> Generator[str, None, None]:
+    """Create a temporary directory for tests."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield temp_dir

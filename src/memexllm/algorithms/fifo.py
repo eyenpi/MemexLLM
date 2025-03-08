@@ -33,7 +33,7 @@ class FIFOAlgorithm(BaseAlgorithm):
         Initialize the FIFO algorithm with specified capacity.
 
         Args:
-            max_messages (int, optional): Maximum number of messages to keep in a thread.
+            max_messages (int): Maximum number of messages to keep in a thread.
                 Defaults to 100. Must be greater than 0.
 
         Raises:
@@ -58,14 +58,6 @@ class FIFOAlgorithm(BaseAlgorithm):
         Args:
             thread (Thread): The conversation thread to process
             new_message (Message): The new message to add to the thread
-
-        Example:
-            ```python
-            # With max_messages=2:
-            # Initial thread: [msg1]
-            # After adding msg2: [msg1, msg2]
-            # After adding msg3: [msg2, msg3]  # msg1 is removed
-            ```
         """
         # Add the new message
         thread.add_message(new_message)
@@ -80,10 +72,10 @@ class FIFOAlgorithm(BaseAlgorithm):
         Returns the most recent messages up to max_messages.
 
         Args:
-            messages: Complete list of messages in the thread
+            messages (List[Message]): Complete list of messages in the thread
 
         Returns:
-            List of most recent messages up to max_messages
+            List[Message]: List of most recent messages up to max_messages
         """
         if len(messages) > self._max_messages:
             return messages[-self._max_messages :]

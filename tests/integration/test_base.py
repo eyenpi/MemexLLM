@@ -5,6 +5,7 @@ import pytest
 from memexllm.algorithms import FIFOAlgorithm
 from memexllm.core import HistoryManager, MessageRole, Thread
 from memexllm.storage import MemoryStorage
+from memexllm.utils.exceptions import ThreadNotFoundError
 
 
 def test_complete_conversation_flow() -> None:
@@ -69,7 +70,7 @@ def test_error_handling() -> None:
     manager = HistoryManager(storage=MemoryStorage())
 
     # Test invalid thread ID
-    with pytest.raises(ValueError):
+    with pytest.raises(ThreadNotFoundError, match="Thread not found: nonexistent"):
         manager.add_message(
             thread_id="nonexistent",
             content="This should fail",
