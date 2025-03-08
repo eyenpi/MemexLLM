@@ -25,6 +25,7 @@ from memexllm.integrations.openai import (
     with_history,
 )
 from memexllm.storage.base import BaseStorage
+from memexllm.utils.exceptions import ConfigurationError
 
 
 class MockStorage(BaseStorage):
@@ -517,7 +518,7 @@ class TestOpenAIIntegration(unittest.TestCase):
     def test_with_history_no_storage(self, mock_async_client, mock_client):
         """Test that with_history raises an error when no storage is provided."""
         client = OpenAI()
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ConfigurationError):
             with_history()(client)
 
     def test_with_history_existing_manager(self, mock_async_client, mock_client):

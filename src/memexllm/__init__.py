@@ -1,4 +1,20 @@
 from . import algorithms, core, integrations, storage, utils
+from .utils.exceptions import (
+    APIError,
+    AuthenticationError,
+    ConfigurationError,
+    ConnectionError,
+    IntegrityError,
+    MemexLLMError,
+    MessageNotFoundError,
+    OpenAIAPIError,
+    OperationError,
+    RateLimitError,
+    ResourceNotFoundError,
+    StorageError,
+    ThreadNotFoundError,
+    ValidationError,
+)
 
 __all__ = [
     "storage",
@@ -6,4 +22,19 @@ __all__ = [
     "core",
     "utils",
     "integrations",
+    # Exceptions
+    "MemexLLMError",
+    "ConfigurationError",
+    "APIError",
+    "OpenAIAPIError",
+    "RateLimitError",
+    "AuthenticationError",
+    "ResourceNotFoundError",
+    "ThreadNotFoundError",
+    "MessageNotFoundError",
+    "ValidationError",
+    "StorageError",
+    "ConnectionError",
+    "OperationError",
+    "IntegrityError",
 ]

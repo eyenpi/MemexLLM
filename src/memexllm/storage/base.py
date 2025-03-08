@@ -12,7 +12,7 @@ class BaseStorage(ABC):
         Initialize storage with optional message limit.
 
         Args:
-            max_messages: Maximum number of messages to store per thread.
+            max_messages (Optional[int]): Maximum number of messages to store per thread.
                 If None, store all messages.
         """
         self.max_messages = max_messages
@@ -26,7 +26,7 @@ class BaseStorage(ABC):
         will be stored.
 
         Args:
-            thread: The thread to save
+            thread (Thread): The thread to save
         """
         pass
 
@@ -38,12 +38,12 @@ class BaseStorage(ABC):
         Retrieve a thread by ID
 
         Args:
-            thread_id: ID of the thread to retrieve
-            message_limit: Maximum number of most recent messages to return.
+            thread_id (str): ID of the thread to retrieve
+            message_limit (Optional[int]): Maximum number of most recent messages to return.
                 If None, return all stored messages.
 
         Returns:
-            Thread if found, None otherwise
+            Optional[Thread]: Thread if found, None otherwise
         """
         pass
 
@@ -53,11 +53,11 @@ class BaseStorage(ABC):
         List threads with pagination
 
         Args:
-            limit: Maximum number of threads to return
-            offset: Number of threads to skip
+            limit (int): Maximum number of threads to return
+            offset (int): Number of threads to skip
 
         Returns:
-            List of threads
+            List[Thread]: List of threads
         """
         pass
 
@@ -67,10 +67,10 @@ class BaseStorage(ABC):
         Delete a thread
 
         Args:
-            thread_id: ID of the thread to delete
+            thread_id (str): ID of the thread to delete
 
         Returns:
-            True if deleted, False otherwise
+            bool: True if deleted, False otherwise
         """
         pass
 
@@ -80,9 +80,9 @@ class BaseStorage(ABC):
         Search for threads matching criteria
 
         Args:
-            query: Search criteria
+            query (Dict[str, Any]): Search criteria
 
         Returns:
-            List of matching threads
+            List[Thread]: List of matching threads
         """
         pass
