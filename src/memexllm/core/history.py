@@ -76,7 +76,7 @@ class HistoryManager:
             logger.error(f"Failed to create thread: {e}")
             raise StorageError(f"Failed to create thread: {e}") from e
 
-    def get_thread(self, thread_id: str) -> Optional[Thread]:
+    def get_thread(self, thread_id: str) -> Thread:
         """
         Retrieve a thread by its ID.
 
@@ -87,10 +87,11 @@ class HistoryManager:
             thread_id (str): The unique identifier of the thread
 
         Returns:
-            Optional[Thread]: The thread if found, None otherwise
+            Thread: The thread if found
 
         Raises:
             ValidationError: If thread_id is empty
+            ThreadNotFoundError: If the thread does not exist
             StorageError: If there's an error retrieving the thread
         """
         if not thread_id:
@@ -103,8 +104,8 @@ class HistoryManager:
             # Get thread with optimized message limit
             thread = self.storage.get_thread(thread_id, message_limit=message_limit)
             if not thread:
-                logger.debug(f"Thread not found: {thread_id}")
-                return None
+                logger.error(f"Thread not found: {thread_id}")
+                raise ThreadNotFoundError(f"Thread not found: {thread_id}")
 
             # Let algorithm process messages if configured
             if self.algorithm:
@@ -115,6 +116,8 @@ class HistoryManager:
                 f"Retrieved thread {thread_id} with {len(thread.messages)} messages"
             )
             return thread
+        except ThreadNotFoundError:
+            raise
         except Exception as e:
             logger.error(f"Failed to get thread {thread_id}: {e}")
             raise StorageError(f"Failed to get thread: {e}") from e

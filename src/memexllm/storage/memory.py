@@ -36,8 +36,7 @@ class MemoryStorage(BaseStorage):
         If max_messages is set, only stores the most recent messages up to max_messages.
 
         Args:
-            thread (Thread): The thread to save. If a thread with the same ID
-                already exists, it will be overwritten.
+            thread (Thread): The thread to save
         """
         # Create a copy to avoid modifying the original thread
         thread_copy = deepcopy(thread)

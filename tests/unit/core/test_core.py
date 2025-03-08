@@ -156,8 +156,9 @@ def test_delete_thread() -> None:
     thread = manager.create_thread()
     assert manager.delete_thread(thread.id) is True
 
-    # Verify thread is gone
-    assert manager.get_thread(thread.id) is None
+    # Verify thread is gone by checking it raises ThreadNotFoundError
+    with pytest.raises(ThreadNotFoundError):
+        manager.get_thread(thread.id)
 
     # Try to delete nonexistent thread
     assert manager.delete_thread("nonexistent") is False

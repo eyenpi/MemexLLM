@@ -358,15 +358,15 @@ class SQLiteStorage(BaseStorage):
             raise ValueError(f"Failed to convert row to message: {e}") from e
 
     def save_thread(self, thread: Thread) -> None:
-        """Save or update a thread and its messages.
-
-        If max_messages is set, only stores the most recent messages up to max_messages.
+        """
+        Save or update a thread.
 
         Args:
-            thread: Thread to save
+            thread (Thread): The thread to save
 
         Raises:
-            ValidationError: If thread data is invalid
+            ValidationError: If thread is invalid
+            DatabaseConnectionError: If database connection fails
             DatabaseOperationError: If database operation fails
             DatabaseIntegrityError: If database integrity constraint is violated
         """
@@ -429,15 +429,16 @@ class SQLiteStorage(BaseStorage):
     def get_thread(
         self, thread_id: str, message_limit: Optional[int] = None
     ) -> Optional[Thread]:
-        """Retrieve a thread by ID.
+        """
+        Retrieve a thread by ID.
 
         Args:
-            thread_id: ID of the thread to retrieve
-            message_limit: Maximum number of most recent messages to return.
+            thread_id (str): ID of the thread to retrieve
+            message_limit (Optional[int]): Maximum number of most recent messages to return.
                 If None, return all stored messages.
 
         Returns:
-            Thread if found, None otherwise
+            Optional[Thread]: Thread if found, None otherwise
 
         Raises:
             ValidationError: If thread_id is invalid
@@ -487,14 +488,15 @@ class SQLiteStorage(BaseStorage):
                 conn.close()
 
     def list_threads(self, limit: int = 100, offset: int = 0) -> List[Thread]:
-        """List threads with pagination.
+        """
+        List threads with pagination.
 
         Args:
-            limit: Maximum number of threads to return
-            offset: Number of threads to skip
+            limit (int): Maximum number of threads to return
+            offset (int): Number of threads to skip
 
         Returns:
-            List of threads
+            List[Thread]: List of threads
 
         Raises:
             ValidationError: If pagination parameters are invalid
@@ -525,13 +527,14 @@ class SQLiteStorage(BaseStorage):
                 conn.close()
 
     def delete_thread(self, thread_id: str) -> bool:
-        """Delete a thread and all its messages.
+        """
+        Delete a thread.
 
         Args:
-            thread_id: ID of the thread to delete
+            thread_id (str): ID of the thread to delete
 
         Returns:
-            True if thread was deleted, False if thread was not found
+            bool: True if deleted, False if thread not found
 
         Raises:
             ValidationError: If thread_id is invalid
@@ -572,13 +575,14 @@ class SQLiteStorage(BaseStorage):
                 conn.close()
 
     def search_threads(self, query: Dict[str, Any]) -> List[Thread]:
-        """Search for threads matching criteria
+        """
+        Search for threads matching criteria.
 
         Args:
-            query: Search criteria
+            query (Dict[str, Any]): Search criteria
 
         Returns:
-            List of matching threads
+            List[Thread]: List of matching threads
 
         Raises:
             ValidationError: If query is invalid
