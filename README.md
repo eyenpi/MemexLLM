@@ -72,11 +72,12 @@ client = OpenAI(api_key="your-api-key")
 # Add conversation memory with history management
 storage = MemoryStorage()
 algorithm = FIFOAlgorithm(max_messages=100)
-client = with_history(storage=storage, algorithm=algorithm)(client)
+history_manager = HistoryManager(storage=storage, algorithm=algorithm)
+client = with_history(history_manager=history_manager)(client)
 
 # Use the client as you normally would - conversations are now managed automatically
 response = client.chat.completions.create(
-    model="gpt-4",
+    model="gpt-4o",
     messages=[{"role": "user", "content": "Hello, who are you?"}]
 )
 ```
